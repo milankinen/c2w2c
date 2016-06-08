@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+if [ "$1" == "" ]; then
+  echo "Usage: ./run <keras-script>"
+  exit 1
+fi
+
+device=${DEVICE:-gpu}
+
+
+if [ "x$MODE" == "xdev" ]; then
+  export DEVELOPER_DIR=/Applications/Xcode_6.4.app/Contents/Developer
+  flags=mode=FAST_COMPILE,device=cpu,floatX=float32,optimizer=None
+else
+  flags=mode=FAST_RUN,device=$device,floatX=float32
+fi
+
+
+THEANO_FLAGS=$flags python $@
