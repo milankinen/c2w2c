@@ -11,9 +11,6 @@ def W2C(V_C, V_W, d_W, d_C):
   """
 
   w_E = Input(shape=(d_W,), dtype='float32')
-
-  # V_W.dim[1] = max word length
-  # V_C.dim[0] = number of characters in vocabulary
   c_E = LSTM(1024, return_sequences=True, dropout_W=0.2, dropout_U=0.2)(RepeatVector(V_W.maxlen)(w_E))
   c_I = TimeDistributed(Dense(V_C.size, activation='softmax'))(c_E)
 
