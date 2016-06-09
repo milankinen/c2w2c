@@ -18,7 +18,7 @@ V_W           = training_data.V_W
 
 
 # The actual C2W2C model
-input   = Input(shape=(None, V_W.dim[1]), dtype='int32')
+input   = Input(shape=(None, V_W.maxlen), dtype='int32')
 W_ctx   = TimeDistributed(C2W(V_C=V_C, V_W=V_W, d_C=d_C, d_W=d_W, d_Wi=d_Wi))(input)
 w_np1   = LanguageModel(d_W, state_seq=False)(W_ctx)
 output  = W2C(V_C=V_C, V_W=V_W, d_W=d_W, d_C=d_C)(w_np1)

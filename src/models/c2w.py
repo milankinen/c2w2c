@@ -11,10 +11,8 @@ def C2W(V_C, V_W, d_Wi, d_W, d_C):
     d_C        :: character embedding dimension ("character properties")
   """
 
-  # V_W.dim[1] = max word length
-  # V_C.dim[0] = number of characters in vocabulary
-  indices   = Input(shape=(V_W.dim[1],), dtype='int32')
-  c_E       = Embedding(V_C.dim[0], d_C)(indices)
+  indices   = Input(shape=(V_W.maxlen,), dtype='int32')
+  c_E       = Embedding(V_C.size, d_C)(indices)
 
   forward   = LSTM(d_Wi, go_backwards=False)(c_E)
   backwards = LSTM(d_Wi, go_backwards=True)(c_E)

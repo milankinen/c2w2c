@@ -14,7 +14,7 @@ def W2C(V_C, V_W, d_W, d_C):
 
   # V_W.dim[1] = max word length
   # V_C.dim[0] = number of characters in vocabulary
-  c_E = LSTM(d_C, return_sequences=True)(RepeatVector(V_W.dim[1])(w_E))
-  c_I = TimeDistributed(Dense(V_C.dim[0], activation='softmax'))(c_E)
+  c_E = LSTM(1024, return_sequences=True)(RepeatVector(V_W.maxlen)(w_E))
+  c_I = TimeDistributed(Dense(V_C.size, activation='softmax'))(c_E)
 
   return Model(input=w_E, output=c_I)
