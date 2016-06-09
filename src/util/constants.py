@@ -1,5 +1,5 @@
 
 # start of sentence token
-SOS = '<S>'
+SOS = chr(2)
 # end of sentence token
-EOS = '</S>'
+EOS = chr(3)
