@@ -1,3 +1,4 @@
+import sys
 
 from models import C2W, LanguageModel, W2C
 from util import load_training_data, load_test_data, calc_perplexity
@@ -6,6 +7,7 @@ from keras.layers import TimeDistributed, Input, Activation
 from keras.optimizers import Adam
 
 
+sys.setrecursionlimit(40000)
 
 
 N_batch   = 50
