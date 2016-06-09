@@ -1,7 +1,7 @@
 import sys
 
 from models import C2W, LanguageModel, W2C
-from util import load_training_data, load_test_data, calc_perplexity
+from util import load_training_data, load_test_data, calc_perplexity, info
 from keras.models import Model
 from keras.layers import TimeDistributed, Input, Activation
 from keras.optimizers import Adam
@@ -58,7 +58,7 @@ def update_weights():
   w2c.layers[1].set_weights(w2c_model.get_weights())
 
 
-def test_model():
+def test_model(epoch):
   total_pp = 0.0
   # loop all test sentences from the test set
   for expected, x in Xt:
@@ -68,8 +68,7 @@ def test_model():
     pp = calc_perplexity(V_W, V_Wt, V_C, expected, w2c.predict(S_e))
     print pp
     total_pp += pp
-
-  print 'PP = %f' % (total_pp / len(Xt))
+  info('epoch %d PP = %f' % (epoch, (total_pp / len(Xt))))
 
 
 print 'Compiling models...'
@@ -83,14 +82,15 @@ print 'Compiled'
 try:
   print 'Training model...'
   for e in range(0, N_epoch):
-    print '=== Epoch %d ===' % e
+    epoch = e + 1
+    print '=== Epoch %d ===' % epoch
     c2w2c.fit_generator(generator=training_data.as_generator(N_ctx, N_batch),
                         samples_per_epoch=training_data.get_num_samples(N_ctx),
                         nb_epoch=1,
                         verbose=1)
 
     update_weights()
-    test_model()
+    test_model(epoch)
 
   print 'Training complete'
 except KeyboardInterrupt:

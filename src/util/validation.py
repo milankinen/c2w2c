@@ -44,7 +44,7 @@ def calc_perplexity(V_W, V_Wt, V_C, expected, predictions):
       probs[V_Wt.get_index(tok)] = prob_tok
     # normalize probabilities over the vocabulary
     probs = normalized(probs)
-    print_probs(word, probs, V_Wt)
+    #print_probs(word, probs, V_Wt)
     prob_norm = probs[V_Wt.get_index(word)]
     prob_sentence *= prob_norm
   return np.power(prob_sentence, -1.0 / len(expected))
