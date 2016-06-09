@@ -1,8 +1,9 @@
-import numpy as np
 import random
 
+import numpy as np
+
 from common import make_sentences, fill_context_indices, fill_char_one_hots
-from constants import EOS, SOS, EOW
+from constants import EOS, SOS
 from vocabulary import Vocab
 
 
@@ -14,7 +15,7 @@ class TrainingData:
     self.V_Wm       = Vocab([w for s in sentences for w in s] + [SOS, EOS])
     # ensure that we don't need to discard characters or clip words from the test set
     self.V_W        = Vocab(self.V_Wm.tokens + test_data.V_W.tokens)
-    self.V_C        = Vocab(test_data.V_C.tokens + list(''.join(self.V_W.tokens)) + [EOW])
+    self.V_C        = Vocab(test_data.V_C.tokens + list(''.join(self.V_W.tokens)))
 
   def print_stats(self):
     print 'Training data statistics:'
@@ -41,9 +42,10 @@ class TrainingData:
       actual_size = min(batch_size, n_words - idx - n_context - 1)
       X = np.zeros(shape=(actual_size, n_context, V_W.maxlen), dtype=np.int32)
       y = np.zeros(shape=(actual_size, V_W.maxlen, V_C.size), dtype=np.bool)
+      X.fill(-1)
       for i in range(0, actual_size):
-        fill_context_indices(X[i], words[idx:idx + n_context], V_W, V_C)
-        fill_char_one_hots(y[i], words[idx + n_context], V_W, V_C)
+        fill_context_indices(X[i], words[idx + i:idx + i + n_context], V_W, V_C)
+        fill_char_one_hots(y[i], words[idx + i + n_context], V_W, V_C)
       idx += actual_size
       if idx >= n_words:
         idx = 0
@@ -56,6 +58,7 @@ class TrainingData:
     X     = []
     for s in sents:
       x = np.zeros(shape=(1, len(s) - 1, V_W.maxlen), dtype=np.int32)
+      x.fill(-1)
       fill_context_indices(x[0], s[:-1], V_W, V_C)
       X.append((s[1:], x))
     return X
@@ -68,4 +71,4 @@ def load_training_data(filename, test_data):
     l = line.decode('utf-8').strip('\n').strip(' ').lower()
     if len(l) > 0:
       data.append(l)
-  return TrainingData(' '.join(data), test_data)
+  return TrainingData(' \n '.join(data[0:60]), test_data)

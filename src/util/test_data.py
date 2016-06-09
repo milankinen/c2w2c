@@ -1,7 +1,5 @@
-import numpy as np
-
 from common import make_sentences
-from constants import EOS, SOS, EOW
+from constants import EOS, SOS
 from vocabulary import Vocab
 
 
@@ -10,7 +8,7 @@ class TestData:
     sentences = make_sentences(tokenized_input_str)
     self.sentences  = sentences
     self.V_W        = Vocab([w for s in sentences for w in s] + [SOS, EOS])
-    self.V_C        = Vocab(list(''.join(self.V_W.tokens)) + [EOW])
+    self.V_C        = Vocab(list(''.join(self.V_W.tokens)))
 
   def print_stats(self):
     print 'Test data statistics:'
@@ -28,4 +26,4 @@ def load_test_data(filename):
     l = line.decode('utf-8').strip('\n').strip(' ').lower()
     if len(l) > 0:
       data.append(l)
-  return TestData(' '.join(data))
+  return TestData(' \n '.join(data[0:1]))
