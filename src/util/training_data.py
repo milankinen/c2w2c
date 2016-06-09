@@ -71,4 +71,4 @@ def load_training_data(filename, test_data):
     l = line.decode('utf-8').strip('\n').strip(' ').lower()
     if len(l) > 0:
       data.append(l)
-  return TrainingData(' \n '.join(data[0:60]), test_data)
+  return TrainingData(' \n '.join(data), test_data)

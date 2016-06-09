@@ -26,4 +26,4 @@ def load_test_data(filename):
     l = line.decode('utf-8').strip('\n').strip(' ').lower()
     if len(l) > 0:
       data.append(l)
-  return TestData(' \n '.join(data[0:1]))
+  return TestData(' \n '.join(data))
