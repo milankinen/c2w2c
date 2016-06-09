@@ -15,7 +15,7 @@ N_ctx     = 5
 N_epoch   = 300
 
 
-d_C       = 150
+d_C       = 50
 d_W       = 50
 d_Wi      = 150
 
