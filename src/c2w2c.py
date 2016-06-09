@@ -16,7 +16,7 @@ N_epoch   = 300
 
 
 d_C       = 50
-d_W       = 50
+d_W       = 300
 d_Wi      = 150
 
 
@@ -68,7 +68,7 @@ def test_model(epoch):
     pp = calc_perplexity(V_W, V_Wt, V_C, expected, w2c.predict(S_e))
     print pp
     total_pp += pp
-  info('epoch %d PP = %f' % (epoch, (total_pp / len(Xt))))
+  info('Epoch %d pp = %f' % (epoch, (total_pp / len(Xt))))
 
 
 print 'Compiling models...'
