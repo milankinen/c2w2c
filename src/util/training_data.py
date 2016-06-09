@@ -1,74 +1,71 @@
 import numpy as np
+import random
 
+from common import make_sentences, fill_context_indices, fill_char_one_hots
+from constants import EOS, SOS, EOW
 from vocabulary import Vocab
-
-# end of word character
-EOW = '\n'
-
-# start of sentence token
-SOS = '<S>'
-# end of sentence token
-EOS = '</S>'
 
 
 class TrainingData:
-  def __init__(self, tokenized_input_str):
-    tokens = tokenized_input_str.lower().split(' ')
-    sentences = [[SOS]]
-    for tok in tokens:
-      sentences[-1].append((tok + EOW))
-      if tok in ['.', '!', '?']:
-        sentences[-1].append(EOS)
-        sentences.append([SOS])
-    # remove last placeholder sentence
-    sentences.pop()
-    self.words  = [w for s in sentences for w in s]
-    self.V_W    = Vocab(tokens + [SOS, EOS])
-    self.V_C    = Vocab(list(''.join(self.V_W.tokens)) + [EOW])
+  def __init__(self, tokenized_input_str, test_data):
+    sentences = make_sentences(tokenized_input_str)
+    self.sentences  = sentences
+    self.n_words    = sum(len(s) for s in self.sentences)
+    self.V_Wm       = Vocab([w for s in sentences for w in s] + [SOS, EOS])
+    # ensure that we don't need to discard characters or clip words from the test set
+    self.V_W        = Vocab(self.V_Wm.tokens + test_data.V_W.tokens)
+    self.V_C        = Vocab(test_data.V_C.tokens + list(''.join(self.V_W.tokens)) + [EOW])
 
   def print_stats(self):
     print 'Training data statistics:'
-    print '  - Words:    %d' % len(self.words)
-    print '  - Distinct: %d' % len(self.V_W.dim[0])
-    print '  - Chars:    %d' % len(self.V_C.dim[0])
+    print '  - Number of sentences:   %d' % len(self.sentences)
+    print '  - Total words:           %d' % self.n_words
+    print '  - Distinct words:        %d' % self.V_Wm.size
+    print '  - Max word length:       %d' % self.V_Wm.maxlen
+    print '  - Characters:            %d' % self.V_C.size
+    print '  - Sample dimension:      (ctx, %d, %d)' % (self.V_W.maxlen, self.V_C.size)
 
   def get_num_samples(self, n_context):
-    return len(self.words) - n_context - 1
+    return self.n_words - n_context - 1
 
   def as_generator(self, n_context, batch_size):
-    V_W       = self.V_W
-    V_C       = self.V_C
-    words     = self.words
-    num_words = len(words)
+    V_W     = self.V_W
+    V_C     = self.V_C
+    n_words = self.n_words
+    sents   = self.sentences[:]
+    idx     = 0
 
-    def generator():
-      idx = 0
-      while 1:
-        actual_size = min(batch_size, num_words - idx - n_context - 1)
-        X = np.zeros(shape=(actual_size, n_context, V_W.dim[1]), dtype=np.int32)
-        y = np.zeros(shape=(actual_size, V_W.dim[1], V_C.dim[0]), dtype=np.bool)
-        for i in range(0, actual_size):
-          ctx = words[idx:idx + n_context]
-          to_predict = words[idx + n_context]
-          for j in range(0, n_context):
-            word = ctx[j]
-            for k in range(0, V_W.dim[1]):
-              X[i, j, k] = V_C.get_index(word[k] if len(word) > k else EOW)
-          for k in range(0, V_W.dim[1]):
-            y[i, k, V_C.get_index(to_predict[k] if len(to_predict) > k else EOW)] = 1
-        idx += actual_size
-        if idx <= num_words:
-          idx = 0
-        yield (X, y)
+    random.shuffle(sents)
+    words = [w for s in sents for w in s]
+    while 1:
+      actual_size = min(batch_size, n_words - idx - n_context - 1)
+      X = np.zeros(shape=(actual_size, n_context, V_W.maxlen), dtype=np.int32)
+      y = np.zeros(shape=(actual_size, V_W.maxlen, V_C.size), dtype=np.bool)
+      for i in range(0, actual_size):
+        fill_context_indices(X[i], words[idx:idx + n_context], V_W, V_C)
+        fill_char_one_hots(y[i], words[idx + n_context], V_W, V_C)
+      idx += actual_size
+      if idx >= n_words:
+        idx = 0
+      yield (X, y)
 
-    return generator()
+  def make_test_sentences(self, test_data):
+    sents = test_data.sentences
+    V_C   = self.V_C
+    V_W   = self.V_W
+    X     = []
+    for s in sents:
+      x = np.zeros(shape=(1, len(s) - 1, V_W.maxlen), dtype=np.int32)
+      fill_context_indices(x[0], s[:-1], V_W, V_C)
+      X.append((s[1:], x))
+    return X
 
 
-def load_training_data(filename):
+def load_training_data(filename, test_data):
   lines = open(filename).readlines()
   data = []
   for line in lines:
     l = line.decode('utf-8').strip('\n').strip(' ').lower()
     if len(l) > 0:
       data.append(l)
-  return TrainingData(' '.join(data))
+  return TrainingData(' '.join(data[0:20]), test_data)
