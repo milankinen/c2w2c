@@ -1,4 +1,5 @@
 import sys
+import model_params
 
 from time import strftime, localtime
 from keras.layers import TimeDistributed, Input, Activation
@@ -12,16 +13,8 @@ from validation import calc_perplexity
 
 sys.setrecursionlimit(40000)
 
-
-N_batch   = 50
-N_ctx     = 5
-N_epoch   = 300
-
-
-d_C       = 50
-d_W       = 300
-d_Wi      = 150
-
+params = model_params.from_cli_args()
+params.print_params()
 
 print 'Loading test data...'
 test_data = load_test_data('data/test.txt')
@@ -42,16 +35,16 @@ Xt = training_data.make_test_sentences(test_data)
 
 # The actual C2W2C model
 input   = Input(shape=(None, V_W.maxlen), dtype='int32')
-W_ctx   = TimeDistributed(C2W(V_C=V_C, V_W=V_W, d_C=d_C, d_W=d_W, d_Wi=d_Wi))(input)
-w_np1   = LanguageModel(d_W, state_seq=False)(W_ctx)
-output  = W2C(V_C=V_C, V_W=V_W, d_W=d_W, d_C=d_C)(w_np1)
+W_ctx   = TimeDistributed(C2W(params, V_C, V_W))(input)
+w_np1   = LanguageModel(params, V_C, V_W, state_seq=False)(W_ctx)
+output  = W2C(params, V_C, V_W)(w_np1)
 
 c2w2c   = Model(input=input, output=Activation('softmax')(output))
 
 # Separate ub-models for testing / perplexity
-lm      = Model(input=input, output=LanguageModel(d_W, state_seq=True)(W_ctx))
-w2c_in  = Input(shape=(d_W,))
-w2c     = Model(input=w2c_in, output=Activation('softmax')(W2C(V_C=V_C, V_W=V_W, d_W=d_W, d_C=d_C)(w2c_in)))
+lm      = Model(input=input, output=LanguageModel(params, V_C, V_W, state_seq=True)(W_ctx))
+w2c_in  = Input(shape=(params.d_W,))
+w2c     = Model(input=w2c_in, output=Activation('softmax')(W2C(params, V_C, V_W)(w2c_in)))
 
 
 def update_weights():
@@ -78,7 +71,7 @@ def test_model():
 
 
 print 'Compiling models...'
-c2w2c.compile(optimizer=Adam(lr=0.01), loss='categorical_crossentropy', metrics=['accuracy'])
+c2w2c.compile(optimizer=Adam(lr=0.001, epsilon=1e-10), loss='categorical_crossentropy', metrics=['accuracy'])
 # optimizers are not important in LM and W2C because these models are used
 # only for data validation, thus optimizer never gets used
 lm.compile(optimizer='sgd', loss='mse')
@@ -95,12 +88,12 @@ prev_acc  = None
 
 try:
   print 'Training model...'
-  for e in range(0, N_epoch):
+  for e in range(0, params.n_epoch):
     fit_t.start()
     epoch = e + 1
     print '=== Epoch %d ===' % epoch
-    h = c2w2c.fit_generator(generator=training_data.as_generator(N_ctx, N_batch),
-                            samples_per_epoch=training_data.get_num_samples(N_ctx),
+    h = c2w2c.fit_generator(generator=training_data.as_generator(params.n_context, params.n_batch),
+                            samples_per_epoch=training_data.get_num_samples(params.n_context),
                             nb_epoch=1,
                             verbose=1)
     fit_elapsed, fit_tot = fit_t.lap()

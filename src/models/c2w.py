@@ -12,7 +12,7 @@ class CharEmbedding(Embedding):
     return K.not_equal(x, -1)
 
 
-def C2W(V_C, V_W, d_Wi, d_W, d_C):
+def C2W(params, V_C, V_W):
   """
     V_C        :: character vocabulary
     V_W        :: word vocabulary
@@ -22,13 +22,13 @@ def C2W(V_C, V_W, d_Wi, d_W, d_C):
   """
 
   indices   = Input(shape=(V_W.maxlen,), dtype='int32')
-  c_E       = Embedding(V_C.size + 1, d_C, mask_zero=True)(indices)
+  c_E       = Embedding(V_C.size + 1, params.d_C, mask_zero=True)(indices)
 
-  forward   = LSTM(d_Wi, go_backwards=False)(c_E)
-  backwards = LSTM(d_Wi, go_backwards=True)(c_E)
+  forward   = LSTM(params.d_Wi, go_backwards=False)(c_E)
+  backwards = LSTM(params.d_Wi, go_backwards=True)(c_E)
 
-  s_Ef      = Dense(d_W)(forward)
-  s_Eb      = Dense(d_W)(backwards)
+  s_Ef      = Dense(params.d_W)(forward)
+  s_Eb      = Dense(params.d_W)(backwards)
   s_E       = merge(inputs=[s_Ef, s_Eb], mode='sum')
 
   return Model(input=indices, output=s_E)
