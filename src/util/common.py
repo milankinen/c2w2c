@@ -1,18 +1,32 @@
 from constants import EOS, SOS
 
 
-def make_sentences(tokenized_input_str):
-  tokens = tokenized_input_str.lower().split(' ')
-  sentences = [[SOS]]
-  for tok in tokens:
-    tok = tok.strip(' ')
-    if len(tok) > 0:
-      sentences[-1].append(tok.strip(' '))
-      if tok in ['.', '!', '?', '\n'] and len(sentences[-1]) > 1:
-        sentences[-1].append(EOS)
-        sentences.append([SOS])
-  # remove last placeholder sentence
-  sentences.pop()
+def load_input(filename, max=None):
+  lines = open(filename).readlines()
+  data = []
+  for line in lines:
+    l = line.decode('utf-8').strip('\n').strip(' ')
+    if len(l) > 0:
+      data.append(l)
+  return data if max is None else data[0:max]
+
+
+def make_sentences(tokenized_lines):
+  sentences = []
+  for line in tokenized_lines:
+    tokens = line.split(' ')
+    sentences.append([SOS])
+    for tok in tokens:
+      tok = tok.strip(' ')
+      if len(tok) > 0:
+        sentences[-1].append(tok)
+        if tok in ['.', '!', '?'] and len(sentences[-1]) > 1:
+          sentences[-1].append(EOS)
+          sentences.append([SOS])
+    if len(sentences[-1]) == 1:
+      sentences.pop()
+    else:
+      sentences[-1].append(EOS)
   return sentences
 
 

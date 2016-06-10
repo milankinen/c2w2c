@@ -2,14 +2,14 @@ import random
 
 import numpy as np
 
-from common import make_sentences, fill_context_indices, fill_char_one_hots
 from constants import EOS, SOS
+from common import make_sentences, fill_context_indices, fill_char_one_hots, load_input
 from vocabulary import Vocab
 
 
 class TrainingData:
-  def __init__(self, tokenized_input_str, test_data):
-    sentences = make_sentences(tokenized_input_str)
+  def __init__(self, tokenized_lines, test_data):
+    sentences = make_sentences(tokenized_lines)
     self.sentences  = sentences
     self.n_words    = sum(len(s) for s in self.sentences)
     self.V_Wm       = Vocab([w for s in sentences for w in s] + [SOS, EOS])
@@ -65,10 +65,4 @@ class TrainingData:
 
 
 def load_training_data(filename, test_data):
-  lines = open(filename).readlines()
-  data = []
-  for line in lines:
-    l = line.decode('utf-8').strip('\n').strip(' ').lower()
-    if len(l) > 0:
-      data.append(l)
-  return TrainingData(' \n '.join(data), test_data)
+  return TrainingData(load_input(filename), test_data)
