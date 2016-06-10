@@ -42,7 +42,6 @@ class TrainingData:
       actual_size = min(batch_size, n_words - idx - n_context - 1)
       X = np.zeros(shape=(actual_size, n_context, V_W.maxlen), dtype=np.int32)
       y = np.zeros(shape=(actual_size, V_W.maxlen, V_C.size), dtype=np.bool)
-      X.fill(-1)
       for i in range(0, actual_size):
         fill_context_indices(X[i], words[idx + i:idx + i + n_context], V_W, V_C)
         fill_char_one_hots(y[i], words[idx + i + n_context], V_W, V_C)
@@ -58,7 +57,6 @@ class TrainingData:
     X     = []
     for s in sents:
       x = np.zeros(shape=(1, len(s) - 1, V_W.maxlen), dtype=np.int32)
-      x.fill(-1)
       fill_context_indices(x[0], s[:-1], V_W, V_C)
       X.append((s[1:], x))
     return X

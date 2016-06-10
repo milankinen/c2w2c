@@ -32,7 +32,7 @@ def make_sentences(tokenized_lines):
 
 def fill_char_indices(X, word, V_W, V_C):
   for i, ch in enumerate(word):
-    X[i] = V_C.get_index(ch)
+    X[i] = V_C.get_index(ch) + 1
 
 
 def fill_context_indices(X, ctx, V_W, V_C):
