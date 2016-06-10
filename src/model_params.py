@@ -44,7 +44,7 @@ def from_cli_args():
   parser.add_argument('--num-epoch', type=int)
   parser.add_argument('--load-weights')
   parser.add_argument('--save-weights')
-  parser.add_argument('--max-word-length')
+  parser.add_argument('--max-word-length', type=int)
   parser.add_argument('--d_C', type=int)
   parser.add_argument('--d_W', type=int)
   parser.add_argument('--d_Wi', type=int)
