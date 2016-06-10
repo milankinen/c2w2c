@@ -1,8 +1,7 @@
-class Vocab:
+class Vocabulary:
   def __init__(self, tokens):
     self.tokens     = sorted(set(tokens))
     self.idx_lookup = dict((tok, idx) for idx, tok in enumerate(self.tokens))
-    self.maxlen     = max(len(tok) for tok in self.tokens)
     self.size       = len(self.tokens)
 
   def get_token(self, idx):

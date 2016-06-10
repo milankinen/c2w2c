@@ -6,45 +6,45 @@ from keras.layers import TimeDistributed, Input, Activation
 from keras.models import Model
 from keras.optimizers import Adam
 
+from dataset import make_training_samples_generator, make_test_samples, load_dataset, make_char_vocabulary
 from models import C2W, LanguageModel, W2C
-from util import load_training_data, load_test_data, info, Timer
-from validation import calc_perplexity
+from util import info, Timer
+from validation import test_model
 
 
 sys.setrecursionlimit(40000)
 
+
 params = model_params.from_cli_args()
 params.print_params()
 
-print 'Loading test data...'
-test_data = load_test_data('data/test.txt')
-test_data.print_stats()
-
 print 'Loading training data...'
-training_data = load_training_data('data/training.txt', test_data)
+training_data = load_dataset(params.training_dataset, 50)
 training_data.print_stats()
 
+print 'Loading test data...'
+test_data = load_dataset(params.test_dataset, 1)
+test_data.print_stats()
+
 # Vocabularies
-V_C   = training_data.V_C
-V_W   = training_data.V_W
-V_Wt  = test_data.V_W
+V_C = make_char_vocabulary([test_data, training_data])
 
 # Test samples
-Xt = training_data.make_test_sentences(test_data)
+test_samples = make_test_samples(params, test_data, V_C)
 
 
 # The actual C2W2C model
-input   = Input(shape=(None, V_W.maxlen), dtype='int32')
-W_ctx   = TimeDistributed(C2W(params, V_C, V_W))(input)
-w_np1   = LanguageModel(params, V_C, V_W, state_seq=False)(W_ctx)
-output  = W2C(params, V_C, V_W)(w_np1)
+input   = Input(shape=(None, params.maxlen), dtype='int32')
+W_ctx   = TimeDistributed(C2W(params, V_C))(input)
+w_np1   = LanguageModel(params, V_C, state_seq=False)(W_ctx)
+output  = W2C(params, V_C)(w_np1)
 
 c2w2c   = Model(input=input, output=Activation('softmax')(output))
 
 # Separate ub-models for testing / perplexity
-lm      = Model(input=input, output=LanguageModel(params, V_C, V_W, state_seq=True)(W_ctx))
+lm      = Model(input=input, output=LanguageModel(params, V_C, state_seq=True)(W_ctx))
 w2c_in  = Input(shape=(params.d_W,))
-w2c     = Model(input=w2c_in, output=Activation('softmax')(W2C(params, V_C, V_W)(w2c_in)))
+w2c     = Model(input=w2c_in, output=Activation('softmax')(W2C(params, V_C)(w2c_in)))
 
 
 def update_weights():
@@ -56,18 +56,6 @@ def update_weights():
 
 def delta_str(cur, prev):
   return '(%s%f)' % ('-' if cur < prev else '+', abs(prev - cur)) if prev is not None else ''
-
-
-def test_model():
-  total_pp = 0.0
-  # loop all test sentences from the test set
-  for expected, x in Xt:
-    # get word embedding predictions to tested the sentence
-    S_e = lm.predict(x)[0]
-    # calculate perplexity for the sentence
-    pp = calc_perplexity(V_W, V_Wt, V_C, expected, w2c.predict(S_e))
-    total_pp += pp
-  return total_pp / len(Xt)
 
 
 print 'Compiling models...'
@@ -92,29 +80,33 @@ try:
     fit_t.start()
     epoch = e + 1
     print '=== Epoch %d ===' % epoch
-    h = c2w2c.fit_generator(generator=training_data.as_generator(params.n_context, params.n_batch),
-                            samples_per_epoch=training_data.get_num_samples(params.n_context),
+    gen, n_samples = make_training_samples_generator(params, training_data, V_C)
+    h = c2w2c.fit_generator(generator=gen,
+                            samples_per_epoch=n_samples,
                             nb_epoch=1,
                             verbose=1)
     fit_elapsed, fit_tot = fit_t.lap()
+
+    # needed for validation models LM and W2C
     update_weights()
 
     test_t.start()
-    loss  = h.history['loss'][0]
-    acc   = h.history['acc'][0]
-    pp    = test_model()
+    loss    = h.history['loss'][0]
+    acc     = h.history['acc'][0]
+    pp, oov = test_model(params, lm, w2c, test_samples, test_data.vocabulary, V_C)
     test_elapsed, test_tot = test_t.lap()
 
     epoch_info = '''Epoch %d summary at %s:
   - Model loss:         %f %s
   - Model accuracy:     %f %s
   - Model perplexity:   %f %s
+  - OOV rate:           %f
   - Training took:      %s
   - Validation took:    %s
   - Total training:     %s
   - Total validation:   %s''' % (epoch, strftime("%Y-%m-%d %H:%M:%S", localtime()), loss, delta_str(loss, prev_loss),
-                                 acc, delta_str(acc, prev_acc), pp, delta_str(pp, prev_pp), fit_elapsed, test_elapsed,
-                                 fit_tot, test_tot)
+                                 acc, delta_str(acc, prev_acc), pp, delta_str(pp, prev_pp), oov, fit_elapsed,
+                                 test_elapsed, fit_tot, test_tot)
     print ''
     info(epoch_info)
 

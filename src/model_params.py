@@ -14,6 +14,7 @@ class ModelParams:
     self.d_W              = args.d_W
     self.d_Wi             = args.d_Wi
     self.d_D              = args.d_D
+    self.maxlen           = args.max_word_length
 
   def print_params(self):
     print 'Model parameters:'
@@ -26,6 +27,7 @@ class ModelParams:
     print ' - d_W:              %d' % self.d_W
     print ' - d_Wi:             %d' % self.d_Wi
     print ' - d_D:              %d' % self.d_D
+    print ' - Max word length:  %d' % self.maxlen
 
 
 def from_cli_args():
@@ -38,6 +40,7 @@ def from_cli_args():
   parser.add_argument('--num-epoch', type=int)
   parser.add_argument('--load-weights')
   parser.add_argument('--save-weights')
+  parser.add_argument('--max-word-length')
   parser.add_argument('--d_C', type=int)
   parser.add_argument('--d_W', type=int)
   parser.add_argument('--d_Wi', type=int)
@@ -46,6 +49,7 @@ def from_cli_args():
                       batch_size=50,
                       learning_rate=0.0001,
                       num_epoch=1000,
+                      max_word_length=25,
                       d_C=50,
                       d_W=300,
                       d_Wi=150,

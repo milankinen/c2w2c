@@ -2,9 +2,8 @@ from keras.layers import LSTM, Input
 from keras.models import Model
 
 
-def LanguageModel(params, V_C, V_W, state_seq=False):
+def LanguageModel(params, V_C, state_seq=False):
   """
-    d_W        :: word embedding dimension ("word properties")
     state_seq  :: True returns all intermediate states, False returns only the state (= word embedding)
                   of the predicted word
   """
