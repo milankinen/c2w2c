@@ -1,6 +1,14 @@
 from constants import EOS, SOS
 
 
+def tok_str(tok):
+  if tok == SOS:
+    return '<S>'
+  elif tok == EOS:
+    return '</S>'
+  return tok
+
+
 def load_input(filename, max=None):
   lines = open(filename).readlines()
   data = []

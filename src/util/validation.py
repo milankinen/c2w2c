@@ -1,6 +1,7 @@
 import numpy as np
 
 from constants import SOS, EOS
+from common import tok_str
 
 
 def normalized(x):
@@ -8,14 +9,6 @@ def normalized(x):
   if v == 0:
     return x
   return x / v
-
-
-def tok_str(tok):
-  if tok == SOS:
-    return '<S>'
-  elif tok == EOS:
-    return '</S>'
-  return tok
 
 
 def print_probs(expected, probs, V_Wt):

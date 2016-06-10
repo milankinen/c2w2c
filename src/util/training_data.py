@@ -2,8 +2,8 @@ import random
 
 import numpy as np
 
+from common import make_sentences, fill_context_indices, fill_char_one_hots, load_input, tok_str
 from constants import EOS, SOS
-from common import make_sentences, fill_context_indices, fill_char_one_hots, load_input
 from vocabulary import Vocab
 
 
@@ -48,6 +48,24 @@ class TrainingData:
       idx += actual_size
       if idx >= n_words:
         idx = 0
+      """
+      for a in range(0, actual_size):
+        ctx = ''
+        pred = ''
+        for b in range(0, n_context):
+          word = ''
+          for c in range(0, V_W.maxlen):
+            if X[a, b, c] == -1:
+              break
+            word += V_C.get_token(X[a, b, c])
+          ctx += tok_str(word) + ' '
+        for b in range(0, V_W.maxlen):
+          for c in range(0, V_C.size):
+            if y[a, b, c]:
+              pred += V_C.get_token(c)
+              break
+        print ctx + ' >>> ' + pred
+      """
       yield (X, y)
 
   def make_test_sentences(self, test_data):
