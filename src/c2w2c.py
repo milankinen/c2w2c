@@ -1,10 +1,12 @@
 import sys
 
-from models import C2W, LanguageModel, W2C
-from util import load_training_data, load_test_data, calc_perplexity, info
-from keras.models import Model
+from time import strftime, localtime
 from keras.layers import TimeDistributed, Input, Activation
+from keras.models import Model
 from keras.optimizers import Adam
+
+from models import C2W, LanguageModel, W2C
+from util import load_training_data, load_test_data, calc_perplexity, info, Timer
 
 
 sys.setrecursionlimit(40000)
@@ -58,7 +60,11 @@ def update_weights():
   w2c.layers[1].set_weights(w2c_model.get_weights())
 
 
-def test_model(epoch):
+def delta_str(cur, prev):
+  return '(%s%f)' % ('-' if cur < prev else '+', abs(prev - cur)) if prev is not None else ''
+
+
+def test_model():
   total_pp = 0.0
   # loop all test sentences from the test set
   for expected, x in Xt:
@@ -66,31 +72,61 @@ def test_model(epoch):
     S_e = lm.predict(x)[0]
     # calculate perplexity for the sentence
     pp = calc_perplexity(V_W, V_Wt, V_C, expected, w2c.predict(S_e))
-    print pp
     total_pp += pp
-  info('Epoch %d pp = %f' % (epoch, (total_pp / len(Xt))))
+  return total_pp / len(Xt)
 
 
 print 'Compiling models...'
-c2w2c.compile(optimizer=Adam(lr=0.01), loss='categorical_crossentropy')
+c2w2c.compile(optimizer=Adam(lr=0.01), loss='categorical_crossentropy', metrics=['accuracy'])
 # optimizers are not important in LM and W2C because these models are used
 # only for data validation, thus optimizer never gets used
 lm.compile(optimizer='sgd', loss='mse')
 w2c.compile(optimizer='sgd', loss='categorical_crossentropy')
 print 'Compiled'
 
+
+fit_t   = Timer()
+test_t  = Timer()
+
+prev_pp   = None
+prev_loss = None
+prev_acc  = None
+
 try:
   print 'Training model...'
   for e in range(0, N_epoch):
+    fit_t.start()
     epoch = e + 1
     print '=== Epoch %d ===' % epoch
-    c2w2c.fit_generator(generator=training_data.as_generator(N_ctx, N_batch),
-                        samples_per_epoch=training_data.get_num_samples(N_ctx),
-                        nb_epoch=1,
-                        verbose=1)
-
+    h = c2w2c.fit_generator(generator=training_data.as_generator(N_ctx, N_batch),
+                            samples_per_epoch=training_data.get_num_samples(N_ctx),
+                            nb_epoch=1,
+                            verbose=1)
+    fit_elapsed, fit_tot = fit_t.lap()
     update_weights()
-    test_model(epoch)
+
+    test_t.start()
+    loss  = h.history['loss'][0]
+    acc   = h.history['acc'][0]
+    pp    = test_model()
+    test_elapsed, test_tot = test_t.lap()
+
+    epoch_info = '''Epoch %d summary at %s:
+  - Model loss:         %f %s
+  - Model accuracy:     %f %s
+  - Model perplexity:   %f %s
+  - Training took:      %s
+  - Validation took:    %s
+  - Total training:     %s
+  - Total validation:   %s''' % (epoch, strftime("%Y-%m-%d %H:%M:%S", localtime()), loss, delta_str(loss, prev_loss),
+                                 acc, delta_str(acc, prev_acc), pp, delta_str(pp, prev_pp), fit_elapsed, test_elapsed,
+                                 fit_tot, test_tot)
+    print ''
+    info(epoch_info)
+    
+    prev_acc  = acc
+    prev_loss = loss
+    prev_pp   = pp
 
   print 'Training complete'
 except KeyboardInterrupt:
