@@ -15,7 +15,7 @@ class Timer:
 
   def lap(self):
     t = int(round(time.time() * 1000))
-    d = self.last - t
+    d = t - self.last
     self.last = t
     self.total += d
-    return _fmt_time(t), _fmt_time(self.total)
+    return _fmt_time(d), _fmt_time(self.total)
