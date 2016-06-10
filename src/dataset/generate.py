@@ -37,7 +37,6 @@ def _fill_char_one_hots(X, word, V_C, maxlen):
 def make_training_samples_generator(params, dataset, V_C):
   sents = dataset.sentences[:]
   random.shuffle(sents)
-  V_W       = dataset.vocabulary
   words     = Dataset(sents).get_words()
   n_words   = len(words)
   n_batch   = params.n_batch

@@ -38,7 +38,7 @@ class Dataset:
     self.vocabulary = Vocabulary(self.get_words())
 
   def print_stats(self):
-    print 'Training data statistics:'
+    print 'Dataset statistics:'
     print '  - Number of sentences:   %d' % len(self.sentences)
     print '  - Number of words:       %d' % self.n_words
 
