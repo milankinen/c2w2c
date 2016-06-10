@@ -3,11 +3,16 @@ import numpy as np
 from dataset.generate import _tok_str
 
 
-def normalized(x):
+def _normalized(x):
   v = np.linalg.norm(x)
   if v == 0:
     return x
   return x / v
+
+
+def _get_normalized_prob(x, idx):
+  p = x[idx]
+  return p / np.sum(x)
 
 
 def _print_probs(expected, probs, V_W):
@@ -38,9 +43,9 @@ def calc_perplexity(V_W, V_C, expected, predictions, maxlen):
       prob_tok = np.power(prob_tok, 1.0 / len(tok))
       probs[V_W.get_index(tok)] = prob_tok
     # normalize probabilities over the vocabulary
-    probs = normalized(probs)
+    # probs = _normalized(probs)
     # _print_probs(word, probs, V_W)
-    prob_norm = probs[V_W.get_index(word)]
+    prob_norm = _get_normalized_prob(probs, V_W.get_index(word))
     prob_sent *= prob_norm
     tested += 1
 
