@@ -49,7 +49,7 @@ def make_training_samples_generator(params, dataset, V_C):
     while 1:
       actual_size = min(n_batch, n_words - idx - n_context - 1)
       X = np.zeros(shape=(actual_size, n_context, params.maxlen), dtype=np.int32)
-      y = np.zeros(shape=(actual_size, V_W.maxlen, V_C.size), dtype=np.bool)
+      y = np.zeros(shape=(actual_size, params.maxlen, V_C.size), dtype=np.bool)
       for i in range(0, actual_size):
         _fill_context_indices(X[i], words[idx + i:idx + i + n_context], V_C, params.maxlen)
         _fill_char_one_hots(y[i], words[idx + i + n_context], V_C, params.maxlen)
@@ -62,12 +62,12 @@ def make_training_samples_generator(params, dataset, V_C):
         pred = ''
         for b in range(0, n_context):
           word = ''
-          for c in range(0, V_W.maxlen):
+          for c in range(0, params.maxlen):
             if X[a, b, c] == -1:
               break
             word += V_C.get_token(X[a, b, c])
           ctx += tok_str(word) + ' '
-        for b in range(0, V_W.maxlen):
+        for b in range(0, params.maxlen):
           for c in range(0, V_C.size):
             if y[a, b, c]:
               pred += V_C.get_token(c)
