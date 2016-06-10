@@ -6,7 +6,8 @@ from keras.models import Model
 from keras.optimizers import Adam
 
 from models import C2W, LanguageModel, W2C
-from util import load_training_data, load_test_data, calc_perplexity, info, Timer
+from util import load_training_data, load_test_data, info, Timer
+from validation import calc_perplexity
 
 
 sys.setrecursionlimit(40000)

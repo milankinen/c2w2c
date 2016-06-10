@@ -1,7 +1,6 @@
 import numpy as np
 
-from constants import SOS, EOS
-from common import tok_str
+from util import tok_str, SOS, EOS
 
 
 def normalized(x):
