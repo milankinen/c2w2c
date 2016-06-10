@@ -123,7 +123,7 @@ try:
                                  fit_tot, test_tot)
     print ''
     info(epoch_info)
-    
+
     prev_acc  = acc
     prev_loss = loss
     prev_pp   = pp
