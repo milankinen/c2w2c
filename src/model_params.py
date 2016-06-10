@@ -30,6 +30,8 @@ class ModelParams:
     print ' - d_D:              %d' % self.d_D
     print ' - Learning rate:    %d' % self.learning_rate
     print ' - Max word length:  %d' % self.maxlen
+    print ' - Load weights:     %s' % ('yes' if self.init_weight_file else 'no')
+    print ' - Save weights:     %s' % ('yes' if self.save_weight_file else 'no')
 
 
 def from_cli_args():

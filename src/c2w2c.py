@@ -1,4 +1,4 @@
-import sys
+import sys, os.path as path
 import model_params
 
 from time import strftime, localtime
@@ -66,6 +66,12 @@ lm.compile(optimizer='sgd', loss='mse')
 w2c.compile(optimizer='sgd', loss='categorical_crossentropy')
 print 'Compiled'
 
+if params.init_weight_file:
+  if path.isfile(params.init_weight_file):
+    print 'Loading existing weights from "%s" ...' % params.init_weight_file
+    c2w2c.load_weights(params.init_weight_file)
+  else:
+    print 'Initial weight file not found: %s' % params.init_weight_file
 
 fit_t   = Timer()
 test_t  = Timer()
@@ -109,6 +115,10 @@ try:
                                  test_elapsed, fit_tot, test_tot)
     print ''
     info(epoch_info)
+
+    if params.save_weight_file and (prev_loss is None or prev_loss > loss):
+      c2w2c.save_weights(params.save_weight_file, overwrite=True)
+      print 'Model weights saved'
 
     prev_acc  = acc
     prev_loss = loss
