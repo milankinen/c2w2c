@@ -59,7 +59,7 @@ def delta_str(cur, prev):
 
 
 print 'Compiling models...'
-c2w2c.compile(optimizer=Adam(lr=0.001, epsilon=1e-10), loss='categorical_crossentropy', metrics=['accuracy'])
+c2w2c.compile(optimizer=Adam(lr=params.learning_rate, epsilon=1e-10), loss='categorical_crossentropy', metrics=['accuracy'])
 # optimizers are not important in LM and W2C because these models are used
 # only for data validation, thus optimizer never gets used
 lm.compile(optimizer='sgd', loss='mse')

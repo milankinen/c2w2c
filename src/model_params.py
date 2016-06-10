@@ -14,6 +14,7 @@ class ModelParams:
     self.d_W              = args.d_W
     self.d_Wi             = args.d_Wi
     self.d_D              = args.d_D
+    self.learning_rate    = args.learning_rate
     self.maxlen           = args.max_word_length
 
   def print_params(self):
@@ -27,6 +28,7 @@ class ModelParams:
     print ' - d_W:              %d' % self.d_W
     print ' - d_Wi:             %d' % self.d_Wi
     print ' - d_D:              %d' % self.d_D
+    print ' - Learning rate:    %d' % self.learning_rate
     print ' - Max word length:  %d' % self.maxlen
 
 
