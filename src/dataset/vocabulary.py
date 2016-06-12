@@ -13,3 +13,6 @@ class Vocabulary:
     if token in self.idx_lookup:
       return self.idx_lookup[token]
     raise AssertionError('Token "%s" not found from vocabulary' % token)
+
+  def has(self, token):
+    return token in self.idx_lookup
