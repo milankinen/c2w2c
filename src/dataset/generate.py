@@ -42,17 +42,18 @@ def make_training_samples_generator(params, dataset, V_C):
     idx = 0
     while 1:
       actual_size = min(n_batch, n_words - idx - n_context - 1)
-      X = np.zeros(shape=(actual_size, n_context, maxlen, V_C.size), dtype=np.bool)
-      y = np.zeros(shape=(actual_size, maxlen, V_C.size), dtype=np.bool)
-      w = np.zeros(shape=(actual_size, maxlen), dtype=np.float32)
+      Xctx  = np.zeros(shape=(actual_size, n_context, maxlen, V_C.size), dtype=np.bool)
+      y     = np.zeros(shape=(actual_size, maxlen, V_C.size), dtype=np.bool)
+      Xpred = y
+      w     = np.zeros(shape=(actual_size, maxlen), dtype=np.float32)
       for i in range(0, actual_size):
-        _fill_context_one_hots(X[i], words[idx + i:idx + i + n_context], V_C, maxlen)
+        _fill_context_one_hots(Xctx[i], words[idx + i:idx + i + n_context], V_C, maxlen)
         _fill_char_one_hots(y[i], words[idx + i + n_context], V_C, maxlen, pad=EOW)
         _fill_weights(w[i], words[idx + i + n_context], maxlen)
       idx += actual_size
       if idx >= n_words:
         idx = 0
-      yield (X, y, w)
+      yield ({'context': Xctx, 'predicted_word': Xpred}, y, w)
 
   return make_generator(), n_samples
 
@@ -60,10 +61,10 @@ def make_training_samples_generator(params, dataset, V_C):
 def make_test_samples(params, dataset, V_C):
   sents   = dataset.sentences
   maxlen  = params.maxlen
-  X       = []
+  samples = []
   for s in sents:
     x = np.zeros(shape=(1, len(s) - 1, maxlen, V_C.size), dtype=np.bool)
     _fill_context_one_hots(x[0], s[:-1], V_C, maxlen)
-    X.append((s[1:], x))
-  return X
+    samples.append((s[1:], x))
+  return samples
 
