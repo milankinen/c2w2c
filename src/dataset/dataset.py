@@ -41,6 +41,7 @@ class Dataset:
     print 'Dataset statistics:'
     print '  - Number of sentences:   %d' % len(self.sentences)
     print '  - Number of words:       %d' % self.n_words
+    print '  - Distinct words:        %d' % self.vocabulary.size
 
   def get_words(self):
     return [w for s in self.sentences for w in s]
