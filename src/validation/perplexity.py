@@ -4,15 +4,8 @@ from dataset.generate import _tok_str
 
 
 def _normalized(x):
-  v = np.linalg.norm(x)
-  if v == 0:
-    return x
-  return x / v
-
-
-def _get_normalized_prob(x, idx):
-  p = x[idx]
-  return p / np.sum(x)
+  # == softmax
+  return np.exp(x) / np.sum(np.exp(x), axis=0)
 
 
 def _print_probs(expected, probs, V_W):
