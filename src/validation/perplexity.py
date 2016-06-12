@@ -17,20 +17,20 @@ def _print_probability_distribution(expected, p_all, V_W):
 
 
 def calc_word_probability(word, pred, V_C, maxlen):
-  p   = 1.0
+  p   = 0.
   tok = w2tok(word, maxlen)
   for i, ch in enumerate(tok):
-    p *= pred[i, V_C.get_index(ch)]
+    p += np.log(pred[i, V_C.get_index(ch)])
   # length normalization so that we don't favor short words
-  return np.power(p, 1.0 / len(tok))
+  return np.power(np.exp(p), 1.0 / len(tok))
 
 
-def calc_perplexity(V_W, V_C, expected, predictions, maxlen):
+def calc_perplexity(V_W, V_C, expectations, predictions, maxlen):
   p_sentence  = 1.0
   n_oov       = 0
   n_tested    = 0
-  for idx, word in enumerate(expected):
-    if is_oov(word, maxlen):
+  for idx, expected in enumerate(expectations):
+    if is_oov(expected, maxlen):
       n_oov += 1
       continue
     pred  = predictions[idx]
@@ -40,8 +40,8 @@ def calc_perplexity(V_W, V_C, expected, predictions, maxlen):
       p_all[V_W.get_index(word)] = p_word
     # normalize probabilities over the vocabulary
     p_all = _normalized(p_all)
-    #_print_probability_distribution(word, p_all, V_W)
-    p_expected = p_all[V_W.get_index(word)]
+    _print_probability_distribution(expected, p_all, V_W)
+    p_expected = p_all[V_W.get_index(expected)]
     p_sentence *= p_expected
     n_tested += 1
 
