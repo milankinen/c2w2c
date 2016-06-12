@@ -2,7 +2,7 @@ import sys, os.path as path
 import model_params
 
 from time import strftime, localtime
-from keras.layers import TimeDistributed, Input, Activation
+from keras.layers import TimeDistributed, Input
 from keras.models import Model
 from keras.optimizers import Adam
 
@@ -30,18 +30,20 @@ test_data.print_stats()
 V_C = make_char_vocabulary([test_data, training_data])
 
 # Test samples
+print 'Preparing test samples...'
 test_samples = make_test_samples(params, test_data, V_C)
 
 
 # The actual C2W2C model
-input   = Input(shape=(None, params.maxlen), dtype='int32')
+print 'Defining models...'
+input   = Input(shape=(None, params.maxlen, V_C.size), dtype='int8')
 W_ctx   = TimeDistributed(C2W(params, V_C))(input)
 w_np1   = LanguageModel(params, V_C, state_seq=False)(W_ctx)
 output  = W2C(params, V_C)(w_np1)
 
 c2w2c   = Model(input=input, output=output)
 
-# Separate ub-models for testing / perplexity
+# Separate sub-models for testing / perplexity
 lm      = Model(input=input, output=LanguageModel(params, V_C, state_seq=True)(W_ctx))
 w2c_in  = Input(shape=(params.d_W,))
 w2c     = Model(input=w2c_in, output=W2C(params, V_C)(w2c_in))
