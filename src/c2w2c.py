@@ -19,11 +19,11 @@ params = model_params.from_cli_args()
 params.print_params()
 
 print 'Loading training data...'
-training_data = load_dataset(params.training_dataset, 50)
+training_data = load_dataset(params.training_dataset, params.train_data_limit)
 training_data.print_stats()
 
 print 'Loading test data...'
-test_data = load_dataset(params.test_dataset, 1)
+test_data = load_dataset(params.test_dataset, params.test_data_limit)
 test_data.print_stats()
 
 # Vocabularies
