@@ -20,6 +20,7 @@ def W2C(params, V_C, e_input=None, p_input=None):
   w_EC    = merge(inputs=[w_E, c_E], mode='concat')
   c_E     = LSTM(params.d_D,
                  return_sequences=True,
+                 consume_less='gpu',
                  dropout_W=0.2,
                  dropout_U=0.2)(w_EC)
   c_I     = TimeDistributed(Dense(V_C.size, activation='softmax'))(c_E)

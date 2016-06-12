@@ -8,6 +8,10 @@ def LanguageModel(params, V_C, state_seq=False):
                   of the predicted word
   """
   context     = Input(shape=(None, params.d_W), dtype='float32')
-  s_W         = LSTM(params.d_W, return_sequences=state_seq, dropout_W=0.2, dropout_U=0.2)(context)
+  s_W         = LSTM(params.d_W,
+                     return_sequences=state_seq,
+                     consume_less='gpu',
+                     dropout_W=0.2,
+                     dropout_U=0.2)(context)
 
   return Model(input=context, output=s_W)
