@@ -4,7 +4,7 @@ import time
 def _fmt_time(t):
   hours   = t // (60 * 60 * 1000)
   mins    = (t % (60 * 60 * 1000)) // (60 * 1000)
-  secs    = (t % 60 * 1000) // 1000
+  secs    = (t % (60 * 1000)) // 1000
   millis  = t % 1000
   return '%dh %dmin %ds %dms' % (hours, mins, secs, millis)
 
