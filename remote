@@ -5,7 +5,7 @@ model_name="${prefix}-$(date +"%Y%m%dT%H%M%S")"
 remote_cmd="source ~/.bash_profile && cd ~/c2w2c/$model_name && $@"
 
 ssh -t neuropurkki "mkdir -p ~/c2w2c/$model_name/data && mkdir -p ~/c2w2c/$model_name/src"
-scp -r data/* src neuropurkki:c2w2c/$model_name/data/
+scp -r data/* neuropurkki:c2w2c/$model_name/data/
 scp -r src/* neuropurkki:c2w2c/$model_name/src/
 scp run neuropurkki:c2w2c/$model_name/
 
