@@ -3,9 +3,13 @@ import numpy as np
 from common import w2tok, w2str, is_oov
 
 
+# Softmax function without floating point overflow, see:
+# https://lingpipe-blog.com/2009/03/17/softmax-without-overflow/
 def _normalized(x):
-  # == softmax
-  return np.exp(x) / np.sum(np.exp(x), axis=0)
+  a = x.max()
+  e = np.exp(x - a)
+  z = np.sum(e)
+  return e / z
 
 
 def _print_probability_distribution(expected, p_all, V_W):
