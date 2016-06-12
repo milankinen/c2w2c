@@ -8,7 +8,7 @@ def C2W(params, V_C):
   c_E       = TimeDistributed(Projection(params.d_C))(one_hots)
   # we want to preserve the state in case of padding so that the state
   # sequence s_Ef and s_Eb last values remain correct
-  c_E_mask  = Masking(mask_value=0)(c_E)
+  c_E_mask  = Masking(mask_value=0.)(c_E)
 
   forward   = LSTM(params.d_Wi, go_backwards=False)(c_E_mask)
   backwards = LSTM(params.d_Wi, go_backwards=True)(c_E_mask)
