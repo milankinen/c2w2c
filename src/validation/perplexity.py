@@ -1,6 +1,6 @@
 import numpy as np
 
-from dataset.generate import _tok_str
+from common import w2tok, w2str, is_oov
 
 
 def _normalized(x):
@@ -8,41 +8,44 @@ def _normalized(x):
   return np.exp(x) / np.sum(np.exp(x), axis=0)
 
 
-def _print_probs(expected, probs, V_W):
-  pl = []
-  for tok in V_W.tokens:
-    pl.append((tok, probs[V_W.get_index(tok)]))
-  pl = sorted(pl, cmp=lambda a, b: cmp(a[1], b[1]), reverse=True)
-  print '\n\nPROBABILITIES (EXPECTED: %s)' % _tok_str(expected)
-  for tok, p in pl:
-    print '>> %s%s : %f' % ('*  ' if tok == expected else '', _tok_str(tok), p)
+def _print_probability_distribution(expected, p_all, V_W):
+  wp_pairs = [(w, p_all[V_W.get_index(w)]) for w in V_W.tokens]
+  wp_pairs = sorted(wp_pairs, cmp=lambda a, b: cmp(a[1], b[1]), reverse=True)
+  print '\n\nPROBABILITIES (EXPECTED: %s)' % w2str(expected)
+  for w, p in wp_pairs:
+    print '>> %s%s : %f' % ('*  ' if w == expected else '', w2str(w), p)
+
+
+def calc_word_probability(word, pred, V_C, maxlen):
+  p   = 1.0
+  tok = w2tok(word, maxlen)
+  for i, ch in enumerate(tok):
+    p *= pred[i, V_C.get_index(ch)]
+  # length normalization so that we don't favor short words
+  return np.power(p, 1.0 / len(tok))
 
 
 def calc_perplexity(V_W, V_C, expected, predictions, maxlen):
-  prob_sent = 1.0
-  oov       = 0
-  tested    = 0
+  p_sentence  = 1.0
+  n_oov       = 0
+  n_tested    = 0
   for idx, word in enumerate(expected):
-    if len(word) > maxlen:
-      oov += 1
+    if is_oov(word, maxlen):
+      n_oov += 1
       continue
-    probs = np.zeros(shape=(V_W.size,), dtype=np.float64)
-    word_pred = predictions[idx]
-    for tok in V_W.tokens:
-      prob_tok = 1.0
-      for i, ch in enumerate(tok):
-        prob_tok *= word_pred[i, V_C.get_index(ch)]
-      # length normalization so that we don't favor short words
-      prob_tok = np.power(prob_tok, 1.0 / len(tok))
-      probs[V_W.get_index(tok)] = prob_tok
+    pred  = predictions[idx]
+    p_all = np.zeros(shape=(V_W.size,), dtype=np.float64)
+    for word in V_W.tokens:
+      p_word = calc_word_probability(word, pred, V_C, maxlen)
+      p_all[V_W.get_index(word)] = p_word
     # normalize probabilities over the vocabulary
-    probs = _normalized(probs)
-    # _print_probs(word, probs, V_W)
-    prob_norm = probs[V_W.get_index(word)] #_get_normalized_prob(probs, V_W.get_index(word))
-    prob_sent *= prob_norm
-    tested += 1
+    p_all = _normalized(p_all)
+    #_print_probability_distribution(word, p_all, V_W)
+    p_expected = p_all[V_W.get_index(word)]
+    p_sentence *= p_expected
+    n_tested += 1
 
-  return (0.0 if tested == 0 else np.power(prob_sent, -1.0 / tested)), oov, tested
+  return (0.0 if n_tested == 0 else np.power(p_sentence, -1.0 / n_tested)), n_oov, n_tested
 
 
 def test_model(params, lm, w2c, samples, V_W, V_C):

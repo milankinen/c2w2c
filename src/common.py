@@ -15,9 +15,8 @@ def w2tok(word, maxlen):
 
 
 def w2str(word):
-  tok = SOW + word + EOW
-  if tok == SOS:
+  if word == SOS:
     return '<S>'
-  elif tok == EOS:
+  elif word == EOS:
     return '</S>'
   return word
