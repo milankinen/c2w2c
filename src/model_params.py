@@ -28,7 +28,7 @@ class ModelParams:
     print ' - d_W:              %d' % self.d_W
     print ' - d_Wi:             %d' % self.d_Wi
     print ' - d_D:              %d' % self.d_D
-    print ' - Learning rate:    %d' % self.learning_rate
+    print ' - Learning rate:    %f' % self.learning_rate
     print ' - Max word length:  %d' % self.maxlen
     print ' - Load weights:     %s' % ('yes' if self.init_weight_file else 'no')
     print ' - Save weights:     %s' % ('yes' if self.save_weight_file else 'no')
@@ -51,13 +51,13 @@ def from_cli_args():
   parser.add_argument('--d_D', type=int)
   parser.set_defaults(context_size=5,
                       batch_size=50,
-                      learning_rate=0.0001,
+                      learning_rate=0.001,
                       num_epoch=1000,
                       max_word_length=25,
                       d_C=50,
                       d_W=300,
                       d_Wi=150,
-                      d_D=1024)
+                      d_D=50)
 
   return ModelParams(parser.parse_args())
 
