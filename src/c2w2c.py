@@ -39,12 +39,12 @@ W_ctx   = TimeDistributed(C2W(params, V_C))(input)
 w_np1   = LanguageModel(params, V_C, state_seq=False)(W_ctx)
 output  = W2C(params, V_C)(w_np1)
 
-c2w2c   = Model(input=input, output=Activation('softmax')(output))
+c2w2c   = Model(input=input, output=output)
 
 # Separate ub-models for testing / perplexity
 lm      = Model(input=input, output=LanguageModel(params, V_C, state_seq=True)(W_ctx))
 w2c_in  = Input(shape=(params.d_W,))
-w2c     = Model(input=w2c_in, output=Activation('softmax')(W2C(params, V_C)(w2c_in)))
+w2c     = Model(input=w2c_in, output=W2C(params, V_C)(w2c_in))
 
 
 def update_weights():
