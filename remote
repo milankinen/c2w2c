@@ -2,11 +2,12 @@
 
 prefix=${MODEL:-model}
 model_name="${prefix}-$(date +"%Y%m%dT%H%M%S")"
-remote_cmd="source ~/.bash_profile && cd ~/c2w2c/$model_name && $@"
+mdir="~/c2w2c/MODELS/$model_name"
+remote_cmd="source ~/.bash_profile && cd $mdir && $@"
 
-ssh -t neuropurkki "mkdir -p ~/c2w2c/$model_name/data && mkdir -p ~/c2w2c/$model_name/src"
-scp -r data/* neuropurkki:c2w2c/$model_name/data/
-scp -r src/* neuropurkki:c2w2c/$model_name/src/
-scp run neuropurkki:c2w2c/$model_name/
+ssh -t neuropurkki "mkdir -p $mdir/data && mkdir -p $mdir/src"
+scp -r data/* neuropurkki:${mdir}/data/
+scp -r src/* neuropurkki:${mdir}/src/
+scp run neuropurkki:${mdir}
 
 ssh -t neuropurkki "screen -UmS $model_name bash -c \"$remote_cmd\""
