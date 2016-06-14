@@ -19,7 +19,7 @@ def calc_word_loss(word, pred, V_C, maxlen):
   tok = w2tok(word, maxlen)
   for i, ch in enumerate(tok):
     p_ch = pred[i]
-    loss += -np.log(p_ch[V_C.get_index(tok[i])]) / np.sum(p_ch)
+    loss += -np.log(p_ch[V_C.get_index(tok[i])] / np.sum(p_ch))
   return loss / len(tok)
 
 
