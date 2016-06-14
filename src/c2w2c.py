@@ -45,17 +45,19 @@ C_I       = W2C(params, V_C, p_input=pred_in)([w_np1, pred_in])
 c2w2c     = Model(input=[ctx_in, pred_in], output=C_I)
 
 # Separate sub-models for testing / perplexity
-lm        = Model(input=ctx_in, output=LanguageModel(params, V_C, state_seq=True)(W_ctx))
+lm_Cin    = Input(shape=(None, params.maxlen, V_C.size), dtype='int8', name='context')
+lm_out    = LanguageModel(params, V_C, state_seq=False)(TimeDistributed(C2W(params, V_C))(lm_Cin))
+lm        = Model(input=lm_Cin, output=lm_out)
 w2c_Ein   = Input(shape=(params.d_W,), dtype='float32', name='embedding')
 w2c_Pin   = Input(shape=(params.maxlen, V_C.size), dtype='int8', name='predicted_word')
 w2c       = W2C(params, V_C, e_input=w2c_Ein, p_input=w2c_Pin)
 
 
 def update_weights():
-  lm_model      = c2w2c.layers[2]
-  w2c_model     = c2w2c.layers[3]
-  lm.layers[2].set_weights(lm_model.get_weights())
-  w2c.layers[1].set_weights(w2c_model.get_weights())
+  lm_weights    = [w for i in range(0, 3) for w in c2w2c.layers[i].get_weights()]
+  w2c_weights   = c2w2c.layers[4].get_weights()
+  lm.set_weights(lm_weights)
+  w2c.set_weights(w2c_weights)
 
 
 def delta_str(cur, prev):

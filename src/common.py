@@ -1,17 +1,18 @@
-from constants import SOW, EOW, EOS, SOS
+from constants import EOW, EOS, SOS
 
 
 def is_oov(word, maxlen):
   return len(word) >= maxlen - 2
 
 
-def w2tok(word, maxlen):
-  if word == SOS or word == EOS:
-    # SOS and EOS already have SOW and EOW
-    return word
-  if len(word) >= maxlen - 2:
-    word = word[0: maxlen - 2]
-  return SOW + word + EOW
+def w2tok(word, maxlen, pad=None):
+  if len(word) >= maxlen - 1:
+    word = word[0: maxlen - 1]
+  word += EOW
+  if pad is not None and len(word) < maxlen:
+    word += pad * (maxlen - len(word))
+    assert len(word) == maxlen
+  return word
 
 
 def w2str(word):

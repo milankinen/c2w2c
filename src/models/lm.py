@@ -14,4 +14,4 @@ def LanguageModel(params, V_C, state_seq=False):
                      dropout_W=0.2,
                      dropout_U=0.2)(context)
 
-  return Model(input=context, output=s_W)
+  return Model(input=context, output=s_W, name='LM')

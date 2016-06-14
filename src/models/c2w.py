@@ -17,4 +17,4 @@ def C2W(params, V_C):
   s_Eb      = Dense(params.d_W)(backwards)
   s_E       = merge(inputs=[s_Ef, s_Eb], mode='sum')
 
-  return Model(input=one_hots, output=s_E)
+  return Model(input=one_hots, output=s_E, name='W2C')

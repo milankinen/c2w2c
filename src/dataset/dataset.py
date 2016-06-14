@@ -49,8 +49,3 @@ class Dataset:
 
 def load_dataset(filename, max_lines=None):
   return Dataset(_make_sentences(_load_input(filename, max_lines)))
-
-
-def make_char_vocabulary(datasets):
-  tokens = [tok for s in datasets for tok in s.vocabulary.tokens]
-  return Vocabulary(list(''.join(tokens)))

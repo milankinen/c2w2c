@@ -15,9 +15,9 @@ def W2C(params, V_C, e_input=None, p_input=None):
   if p_input is None:
     p_input = Input(shape=(params.maxlen, V_C.size), dtype='int8', name='predicted_word')
 
-  c_E     = TimeDistributed(Projection(params.d_C))(p_input)
+  #c_E     = TimeDistributed(Projection(params.d_C))(p_input)
   w_E     = RepeatVector(params.maxlen)(e_input)
-  w_EC    = merge(inputs=[w_E, c_E], mode='concat')
+  w_EC    = merge(inputs=[w_E, p_input], mode='concat')
   c_E     = LSTM(params.d_D,
                  return_sequences=True,
                  consume_less='gpu',
@@ -25,4 +25,4 @@ def W2C(params, V_C, e_input=None, p_input=None):
                  dropout_U=0.2)(w_EC)
   c_I     = TimeDistributed(Dense(V_C.size, activation='softmax'))(c_E)
 
-  return Model(input=[e_input, p_input], output=c_I)
+  return Model(input=[e_input, p_input], output=c_I, name='W2C')
