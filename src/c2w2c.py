@@ -7,6 +7,7 @@ from keras.models import Model
 from keras.optimizers import Adam
 
 from dataset import make_training_samples_generator, make_test_samples, load_dataset, make_char_vocabulary
+from layers import FastDistribute
 from models import C2W, LanguageModel, W2C
 from util import info, Timer
 from validation import test_model
@@ -36,9 +37,9 @@ test_samples = make_test_samples(params, test_data, V_C)
 
 # The actual C2W2C model
 print 'Defining models...'
-ctx_in    = Input(shape=(None, params.maxlen, V_C.size), dtype='int8', name='context')
+ctx_in    = Input(shape=(params.n_context, params.maxlen, V_C.size), dtype='int8', name='context')
 pred_in   = Input(shape=(params.maxlen, V_C.size), dtype='int8', name='predicted_word')
-W_ctx     = TimeDistributed(C2W(params, V_C))(ctx_in)
+W_ctx     = FastDistribute(C2W(params, V_C))(ctx_in)
 w_np1     = LanguageModel(params, V_C, state_seq=False)(W_ctx)
 C_I       = W2C(params, V_C, p_input=pred_in)([w_np1, pred_in])
 
