@@ -98,6 +98,20 @@ if params.init_weight_file:
   else:
     print 'Initial weight file not found: %s' % params.init_weight_file
 
+
+n_params_c2w  = sum([np.prod(np.array(w.shape)) for w in c2w2c.layers[1].get_weights()])
+n_params_lm   = sum([np.prod(np.array(w.shape)) for w in c2w2c.layers[2].get_weights()])
+n_params_w2c  = sum([np.prod(np.array(w.shape)) for w in c2w2c.layers[4].get_weights()])
+
+print 'Model parameters:'
+print '  - C2W:             %d' % n_params_c2w
+print '  - Language Model:  %d' % n_params_lm
+print '  - W2C:             %d' % n_params_w2c
+print '-----------------------'
+print '             Total:  %d' % sum([n_params_c2w, n_params_lm, n_params_w2c])
+print ''
+
+
 fit_t   = Timer()
 test_t  = Timer()
 
