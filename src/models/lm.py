@@ -11,8 +11,8 @@ def LanguageModel(params, V_C, state_seq=False):
   s_Wi        = LSTM(params.d_L,
                      return_sequences=state_seq,
                      consume_less='gpu',
-                     dropout_W=0.2,
-                     dropout_U=0.2)(context)
+                     dropout_W=0.25,
+                     dropout_U=0.25)(context)
 
   if state_seq is True:
     # for testing
