@@ -127,8 +127,9 @@ try:
     info(epoch_info)
 
     if params.save_weight_file and (prev_loss is None or prev_loss > loss):
-      c2w2c.save_weights(params.save_weight_file, overwrite=True)
-      print 'Model weights saved'
+      filename = '%s.%d' % (params.save_weight_file, e % 5)
+      c2w2c.save_weights(filename, overwrite=True)
+      print 'Model weights saved to %s' % filename
 
     prev_acc  = acc
     prev_loss = loss
