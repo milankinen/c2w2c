@@ -147,9 +147,9 @@ try:
       print ''
 
     if params.save_weight_file and (prev_loss is None or prev_loss > loss):
-      filename = '%s.%d' % (params.save_weight_file, e % 5)
+      filename = '%s.%d' % (params.save_weight_file, (e % 10) + 1)
       c2w2c.save_weights(filename, overwrite=True)
-      print 'Model weights saved to %s' % filename
+      info('Model weights saved to %s' % filename)
 
     prev_acc  = acc
     prev_loss = loss
