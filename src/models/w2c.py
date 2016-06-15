@@ -17,7 +17,11 @@ def W2C(params, V_C, e_input=None, p_input=None):
 
   w_E     = RepeatVector(params.maxlen)(e_input)
   w_EC    = merge(inputs=[w_E, p_input], mode='concat')
-  c_E     = LSTM(params.d_D, return_sequences=True, consume_less='gpu')(w_EC)
+  c_E     = LSTM(params.d_D,
+                 return_sequences=True,
+                 dropout_U=0.1,
+                 dropout_W=0.1,
+                 consume_less='gpu')(w_EC)
   c_I     = TimeDistributed(Dense(V_C.size, activation='softmax'))(c_E)
 
   return Model(input=[e_input, p_input], output=c_I, name='W2C')
