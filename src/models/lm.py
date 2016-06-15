@@ -1,4 +1,4 @@
-from keras.layers import LSTM, Input
+from keras.layers import LSTM, Input, Dense, TimeDistributedDense
 from keras.models import Model
 
 
@@ -8,10 +8,17 @@ def LanguageModel(params, V_C, state_seq=False):
                   of the predicted word
   """
   context     = Input(shape=(None, params.d_W), dtype='float32')
-  s_W         = LSTM(params.d_W,
+  s_Wi        = LSTM(params.d_L,
                      return_sequences=state_seq,
                      consume_less='gpu',
                      dropout_W=0.2,
                      dropout_U=0.2)(context)
 
-  return Model(input=context, output=s_W, name='LM')
+  if state_seq is True:
+    # for testing
+    s_Wnp1    = TimeDistributedDense(params.d_W)(s_Wi)
+  else:
+    # for training
+    s_Wnp1    = Dense(params.d_W)(s_Wi)
+
+  return Model(input=context, output=s_Wnp1, name='LM')

@@ -14,6 +14,7 @@ class ModelParams:
     self.d_W              = args.d_W
     self.d_Wi             = args.d_Wi
     self.d_D              = args.d_D
+    self.d_L              = args.d_L
     self.learning_rate    = args.learning_rate
     self.maxlen           = args.max_word_length
     self.limits           = args.data_limit
@@ -33,6 +34,7 @@ class ModelParams:
     print ' - d_C:              %d' % self.d_C
     print ' - d_W:              %d' % self.d_W
     print ' - d_Wi:             %d' % self.d_Wi
+    print ' - d_L:              %d' % self.d_L
     print ' - d_D:              %d' % self.d_D
     print ' - Learning rate:    %f' % self.learning_rate
     print ' - Max word length:  %d' % self.maxlen
@@ -63,6 +65,7 @@ def from_cli_args():
   parser.add_argument('--d_C', type=int, metavar='n', help='Character features vector size')
   parser.add_argument('--d_W', type=int, metavar='n', help='Word features vector size')
   parser.add_argument('--d_Wi', type=int, metavar='n', help='Intermediate word LSTM state dimension')
+  parser.add_argument('--d_L', type=int, metavar='n', help='Language model state dimension')
   parser.add_argument('--d_D', type=int, metavar='n', help='W2C Decoder state dimension')
   parser.add_argument('--gen-samples', type=int, metavar='n', help='Generate N sample sentences after each epoch')
   parser.set_defaults(context_size=5,
@@ -73,7 +76,8 @@ def from_cli_args():
                       d_C=50,
                       d_W=300,
                       d_Wi=150,
-                      d_D=50)
+                      d_L=1024,
+                      d_D=256)
 
   return ModelParams(parser.parse_args())
 
