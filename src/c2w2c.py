@@ -1,4 +1,4 @@
-import sys, os.path as path
+import sys, os.path as path, numpy as np
 import model_params
 
 from time import strftime, localtime
@@ -10,7 +10,7 @@ from dataset import make_training_samples_generator, make_test_samples, load_dat
 from layers import FastDistribute
 from models import C2W, LanguageModel, W2C
 from util import info, Timer
-from validation import test_model
+from validation import test_model, gen_text
 
 
 sys.setrecursionlimit(40000)
@@ -47,7 +47,7 @@ c2w2c     = Model(input=[ctx_in, pred_in], output=C_I)
 
 # Separate sub-models for testing / perplexity
 lm_Cin    = Input(shape=(None, params.maxlen, V_C.size), dtype='int8', name='context')
-lm_out    = LanguageModel(params, V_C, state_seq=False)(TimeDistributed(C2W(params, V_C))(lm_Cin))
+lm_out    = LanguageModel(params, V_C, state_seq=True)(TimeDistributed(C2W(params, V_C))(lm_Cin))
 lm        = Model(input=lm_Cin, output=lm_out)
 w2c_Ein   = Input(shape=(params.d_W,), dtype='float32', name='embedding')
 w2c_Pin   = Input(shape=(params.maxlen, V_C.size), dtype='int8', name='predicted_word')
@@ -59,6 +59,19 @@ def update_weights():
   w2c_weights   = c2w2c.layers[4].get_weights()
   lm.set_weights(lm_weights)
   w2c.set_weights(w2c_weights)
+
+
+def generate_sample_sentences(n_samples):
+  sample_seeds = []
+  V_W          = training_data.vocabulary
+  n_ctx        = params.n_context
+  while len(sample_seeds) < n_samples:
+    i = np.random.randint(0, len(training_data.sentences))
+    sent = training_data.sentences[i]
+    if len(sent) > n_ctx:
+      sample_seeds.append(sent[0: n_ctx])
+      continue
+  gen_text(params, lm, w2c, sample_seeds, V_W, V_C, n_words=15)
 
 
 def delta_str(cur, prev):
@@ -125,6 +138,9 @@ try:
                                  test_elapsed, fit_tot, test_tot)
     print ''
     info(epoch_info)
+
+    if params.gen_n_samples is not None:
+      generate_sample_sentences(params.gen_n_samples)
 
     if params.save_weight_file and (prev_loss is None or prev_loss > loss):
       filename = '%s.%d' % (params.save_weight_file, e % 5)

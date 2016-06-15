@@ -19,6 +19,7 @@ class ModelParams:
     self.limits           = args.data_limit
     self.train_data_limit = self.limits[0] if self.limits is not None else None
     self.test_data_limit  = self.limits[1] if self.limits is not None else None
+    self.gen_n_samples    = args.gen_samples
 
   def print_params(self):
     print 'Model parameters:'
@@ -37,6 +38,7 @@ class ModelParams:
     print ' - Max word length:  %d' % self.maxlen
     print ' - Load weights:     %s' % ('yes' if self.init_weight_file else 'no')
     print ' - Save weights:     %s' % ('yes' if self.save_weight_file else 'no')
+    print ' - Generate samples: %s' % ('no' if self.gen_n_samples is None else str(self.gen_n_samples))
 
 
 def _DataLimit(v):
@@ -62,6 +64,7 @@ def from_cli_args():
   parser.add_argument('--d_W', type=int, metavar='n', help='Word features vector size')
   parser.add_argument('--d_Wi', type=int, metavar='n', help='Intermediate word LSTM state dimension')
   parser.add_argument('--d_D', type=int, metavar='n', help='W2C Decoder state dimension')
+  parser.add_argument('--gen-samples', type=int, metavar='n', help='Generate N sample sentences after each epoch')
   parser.set_defaults(context_size=5,
                       batch_size=50,
                       learning_rate=0.001,

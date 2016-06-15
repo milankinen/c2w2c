@@ -1,17 +1,9 @@
 import numpy as np
+import sys
 
 from common import w2tok, w2str, is_oov
 from constants import SOW, EOW
-from dataset.generate import _fill_char_one_hots
-
-
-def _print_probability_distribution(expected, p_all, V_W):
-  p_norm    = p_all / np.sum(p_all)
-  wp_pairs  = [(w, p_norm[V_W.get_index(w)]) for w in V_W.tokens]
-  wp_pairs  = sorted(wp_pairs, cmp=lambda a, b: cmp(a[1], b[1]), reverse=True)
-  print '\n\nPROBABILITIES (EXPECTED: %s)' % w2str(expected)
-  for w, p in wp_pairs:
-    print '>> %s%s : %f' % ('*  ' if w == expected else '', w2str(w), p)
+from dataset.generate import _fill_char_one_hots, _fill_context_one_hots
 
 
 def calc_word_loss(word, pred, V_C, maxlen):
@@ -19,7 +11,7 @@ def calc_word_loss(word, pred, V_C, maxlen):
   tok = w2tok(word, maxlen)
   for i, ch in enumerate(tok):
     p_ch = pred[i]
-    loss += -np.log(p_ch[V_C.get_index(tok[i])] / np.sum(p_ch))
+    loss += -np.log(p_ch[V_C.get_index(ch)] / np.sum(p_ch))
   return loss / len(tok)
 
 
@@ -61,6 +53,40 @@ def sample_word_prediction_to(target, w2c, embedding, maxlen, V_C):
       Xword[0, i + 1, ch_idx]   = 1
 
 
+def stdw(text):
+  sys.stdout.write(text)
+  sys.stdout.flush()
+
+
+def get_most_probable_word(pred, V_W, V_C, maxlen):
+  best_loss = sys.float_info.max
+  best = None
+  for tok in V_W.tokens:
+    loss = calc_word_loss(tok, pred, V_C, maxlen)
+    if loss < best_loss:  # and np.random.randint(3) == 1:
+      best_loss = loss
+      best = tok
+  return best
+
+
+def gen_text(params, lm, w2c, seeds, V_W, V_C, n_words=15):
+  maxlen  = params.maxlen
+  for seed in seeds:
+    stdw(' '.join([w2str(w) for w in seed]) + ' |> ')
+    ctx = seed
+    for i in range(0, n_words):
+      n_ctx  = len(ctx)
+      X      = np.zeros(shape=(1, n_ctx, maxlen, V_C.size), dtype=np.bool)
+      _fill_context_one_hots(X[0], ctx, V_C, maxlen)
+      S_e = lm.predict(X, batch_size=1)[0][-1]
+      word = np.zeros(shape=(maxlen, V_C.size))
+      sample_word_prediction_to(word, w2c, S_e, maxlen, V_C)
+      best = get_most_probable_word(word, V_W, V_C, maxlen)
+      stdw(w2str(best) + ' ')
+      ctx = ctx + [best]
+    print ''
+
+
 def test_model(params, lm, w2c, samples, V_W, V_C):
   maxlen        = params.maxlen
   total_samples = 0
@@ -68,11 +94,11 @@ def test_model(params, lm, w2c, samples, V_W, V_C):
   total_tested  = 0
   total_oov     = 0
   for expectations, X in samples:
-    n_words = len(expectations)
     # S_e = predicted word embeddings that should match "expected"
-    S_e = lm.predict(X, batch_size=n_words)
-    predictions = np.zeros(shape=(n_words, maxlen, V_C.size), dtype=np.float64)
-    for i in range(0, n_words):
+    S_e         = lm.predict(X, batch_size=1)
+    n_ctx       = len(S_e)
+    predictions = [np.zeros(shape=(maxlen, V_C.size), dtype=np.float64) for _ in range(0, n_ctx)]
+    for i in range(0, n_ctx):
       sample_word_prediction_to(predictions[i], w2c, S_e[i], maxlen, V_C)
     pp, oov, tested = calc_perplexity(V_W, V_C, expectations, predictions, params.maxlen)
     if np.isnan(pp):

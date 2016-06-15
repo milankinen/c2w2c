@@ -70,17 +70,13 @@ def make_training_samples_generator(params, dataset, V_C):
 
 
 def make_test_samples(params, dataset, V_C):
-  n_ctx   = params.n_context
   sents   = dataset.sentences
   maxlen  = params.maxlen
   samples = []
   for s in sents:
-    X = np.zeros(shape=(len(s) - 1, n_ctx, maxlen, V_C.size), dtype=np.bool)
-    # add padding for n-gram applications. for more details, see:
-    # https://github.com/ciprian-chelba/1-billion-word-language-modeling-benchmark/blob/master/README.perplexity_and_such
-    sent = ([EOS] * (n_ctx - 1)) + s
-    for i in range(0, len(s) - 1):
-      _fill_context_one_hots(X[i], sent[i: i + n_ctx], V_C, maxlen)
+    n_ctx = len(s) - 1
+    X = np.zeros(shape=(1, n_ctx, maxlen, V_C.size), dtype=np.bool)
+    _fill_context_one_hots(X[0], s[:-1], V_C, maxlen)
     samples.append((s[1:], X))
   return samples
 
