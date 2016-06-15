@@ -1,4 +1,5 @@
-import argparse, sys
+import argparse
+from util import info
 
 
 class ModelParams:
@@ -21,26 +22,28 @@ class ModelParams:
     self.train_data_limit = self.limits[0] if self.limits is not None else None
     self.test_data_limit  = self.limits[1] if self.limits is not None else None
     self.gen_n_samples    = args.gen_text
+    self.test_only        = args.test_only
 
   def print_params(self):
-    print 'Model parameters:'
-    print ' - Training dataset: %s' % self.training_dataset
-    print ' - Test dataset:     %s' % self.test_dataset
+    info('Model parameters:')
+    info(' - Training dataset: %s' % self.training_dataset)
+    info(' - Test dataset:     %s' % self.test_dataset)
     if self.limits:
-      print ' - Data limits:      %d / %d' % (self.train_data_limit, self.test_data_limit)
-    print ' - Context size:     %d' % self.n_context
-    print ' - Batch size:       %d' % self.n_batch
-    print ' - Number of epoch:  %d' % self.n_epoch
-    print ' - d_C:              %d' % self.d_C
-    print ' - d_W:              %d' % self.d_W
-    print ' - d_Wi:             %d' % self.d_Wi
-    print ' - d_L:              %d' % self.d_L
-    print ' - d_D:              %d' % self.d_D
-    print ' - Learning rate:    %f' % self.learning_rate
-    print ' - Max word length:  %d' % self.maxlen
-    print ' - Load weights:     %s' % ('yes' if self.init_weight_file else 'no')
-    print ' - Save weights:     %s' % ('yes' if self.save_weight_file else 'no')
-    print ' - Generate samples: %s' % ('no' if self.gen_n_samples is None else str(self.gen_n_samples))
+      info(' - Data limits:      %d / %d' % (self.train_data_limit, self.test_data_limit))
+    info(' - Context size:     %d' % self.n_context)
+    info(' - Batch size:       %d' % self.n_batch)
+    info(' - Number of epoch:  %d' % self.n_epoch)
+    info(' - d_C:              %d' % self.d_C)
+    info(' - d_W:              %d' % self.d_W)
+    info(' - d_Wi:             %d' % self.d_Wi)
+    info(' - d_L:              %d' % self.d_L)
+    info(' - d_D:              %d' % self.d_D)
+    info(' - Learning rate:    %f' % self.learning_rate)
+    info(' - Max word length:  %d' % self.maxlen)
+    info(' - Load weights:     %s' % ('yes' if self.init_weight_file else 'no'))
+    info(' - Save weights:     %s' % ('yes' if self.save_weight_file else 'no'))
+    info(' - Generate samples: %s' % ('no' if self.gen_n_samples is None else str(self.gen_n_samples)))
+    info(' - Run only tests:   %s' % ('yes' if self.test_only else 'no'))
 
 
 def _DataLimit(v):
@@ -68,11 +71,13 @@ def from_cli_args():
   parser.add_argument('--d_L', type=int, metavar='n', help='Language model state dimension')
   parser.add_argument('--d_D', type=int, metavar='n', help='W2C Decoder state dimension')
   parser.add_argument('--gen-text', type=int, metavar='n', help='Generate N sample sentences after each epoch')
+  parser.add_argument('--test-only', '-T', action='store_true', help='Run only PP test and (optional) text generation')
   parser.set_defaults(context_size=10,
                       batch_size=50,
                       learning_rate=0.001,
                       num_epoch=1000,
                       max_word_length=25,
+                      test_only=False,
                       d_C=50,
                       d_W=300,
                       d_Wi=150,

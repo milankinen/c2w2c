@@ -119,7 +119,34 @@ prev_pp   = None
 prev_loss = None
 prev_acc  = None
 
+
+def run_model_tests():
+  print 'Validating model...'
+  test_t.start()
+  pp, oov = test_model(params, lm, w2c, test_samples, test_data.vocabulary, V_C)
+  test_elapsed, test_tot = test_t.lap()
+  validation_info = '''Validation results:
+  - Perplexity:         %f %s
+  - OOV rate:           %f
+  - Validation took:    %s
+  - Total validation:   %s''' % (pp, delta_str(pp, prev_pp), oov, test_elapsed, test_tot)
+  print ''
+  info(validation_info)
+
+  if params.gen_n_samples is not None:
+    print 'Generating %d sample sentences...' % params.gen_n_samples
+    generate_sample_sentences(params.gen_n_samples)
+    print ''
+
+  return pp, oov
+
+
 try:
+  if params.test_only:
+    update_weights()
+    run_model_tests()
+    sys.exit(0)
+
   print 'Training model...'
   for e in range(0, params.n_epoch):
     fit_t.start()
@@ -132,33 +159,20 @@ try:
                             verbose=1)
     fit_elapsed, fit_tot = fit_t.lap()
 
-    # needed for validation models LM and W2C
-    update_weights()
-
-    test_t.start()
-    loss    = h.history['loss'][0]
-    acc     = h.history['acc'][0]
-    pp, oov = test_model(params, lm, w2c, test_samples, test_data.vocabulary, V_C)
-    test_elapsed, test_tot = test_t.lap()
-
+    loss       = h.history['loss'][0]
+    acc        = h.history['acc'][0]
     epoch_info = '''Epoch %d summary at %s:
   - Model loss:         %f %s
   - Model accuracy:     %f %s
-  - Model perplexity:   %f %s
-  - OOV rate:           %f
   - Training took:      %s
-  - Validation took:    %s
-  - Total training:     %s
-  - Total validation:   %s''' % (epoch, strftime("%Y-%m-%d %H:%M:%S", localtime()), loss, delta_str(loss, prev_loss),
-                                 acc, delta_str(acc, prev_acc), pp, delta_str(pp, prev_pp), oov, fit_elapsed,
-                                 test_elapsed, fit_tot, test_tot)
+  - Total training:     %s''' % (epoch, strftime("%Y-%m-%d %H:%M:%S", localtime()), loss, delta_str(loss, prev_loss),
+                                 acc, delta_str(acc, prev_acc), fit_elapsed, fit_tot)
     print ''
     info(epoch_info)
 
-    if params.gen_n_samples is not None:
-      print 'Generating %d sample sentences...' % params.gen_n_samples
-      generate_sample_sentences(params.gen_n_samples)
-      print ''
+    # needed for validation models LM and W2C
+    update_weights()
+    pp, _ = run_model_tests()
 
     if params.save_weight_file and (prev_loss is None or prev_loss > loss):
       filename = '%s.%d' % (params.save_weight_file, (e % 10) + 1)
