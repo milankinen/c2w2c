@@ -67,12 +67,11 @@ def update_weights():
 def generate_sample_sentences(n_samples):
   sample_seeds = []
   V_W          = training_data.vocabulary
-  n_ctx        = params.n_context
   while len(sample_seeds) < n_samples:
     i = np.random.randint(0, len(training_data.sentences))
     sent = training_data.sentences[i]
-    if len(sent) > n_ctx:
-      sample_seeds.append(sent[0: n_ctx])
+    if len(sent) > 5:
+      sample_seeds.append(sent[0: 5])
       continue
   gen_text(params, lm, w2c, sample_seeds, V_W, V_C, n_words=15)
 
@@ -143,7 +142,9 @@ try:
     info(epoch_info)
 
     if params.gen_n_samples is not None:
+      print 'Generating %d sample sentences...' % params.gen_n_samples
       generate_sample_sentences(params.gen_n_samples)
+      print ''
 
     if params.save_weight_file and (prev_loss is None or prev_loss > loss):
       filename = '%s.%d' % (params.save_weight_file, e % 5)

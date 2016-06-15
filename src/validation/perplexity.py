@@ -95,7 +95,7 @@ def test_model(params, lm, w2c, samples, V_W, V_C):
   total_oov     = 0
   for expectations, X in samples:
     # S_e = predicted word embeddings that should match "expected"
-    S_e         = lm.predict(X, batch_size=1)
+    S_e         = lm.predict(X, batch_size=1)[0]
     n_ctx       = len(S_e)
     predictions = [np.zeros(shape=(maxlen, V_C.size), dtype=np.float64) for _ in range(0, n_ctx)]
     for i in range(0, n_ctx):
