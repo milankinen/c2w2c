@@ -6,7 +6,9 @@ mdir="~/c2w2c/MODELS/$model_name"
 remote_cmd="source ~/.bash_profile && cd $mdir && $@"
 
 ssh -t neuropurkki "mkdir -p $mdir/data && mkdir -p $mdir/src "
-echo "#!/usr/bin/env bash\n\n$remote_cmd\n" > run_model.sh && chmod 755 run_model.sh
+echo "#!/usr/bin/env bash
+$remote_cmd
+" > run_model.sh && chmod 755 run_model.sh
 scp -r data/* neuropurkki:${mdir}/data/
 scp -r src/* neuropurkki:${mdir}/src/
 scp run_model.sh run neuropurkki:${mdir}
