@@ -30,6 +30,9 @@ test_data.print_stats()
 # Vocabularies
 V_C = make_char_vocabulary([test_data, training_data])
 
+print 'V_C statistics:'
+print '  - Distinct characters: %d' % V_C.size
+
 # Test samples
 print 'Preparing test samples...'
 test_samples = make_test_samples(params, test_data, V_C)
