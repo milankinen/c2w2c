@@ -3,6 +3,17 @@ from vocabulary import Vocabulary
 from util import info
 
 
+def _countby(seq, f):
+  result = {}
+  for value in seq:
+    key = f(value)
+    if key in result:
+      result[key] += 1
+    else:
+      result[key] = 1
+  return result
+
+
 def _load_input(filename, max):
   lines = open(filename).readlines()
   data = []
@@ -36,7 +47,9 @@ class Dataset:
   def __init__(self, sentences):
     self.sentences  = sentences
     self.n_words    = sum(len(s) for s in self.sentences)
-    self.vocabulary = Vocabulary(self.get_words())
+    words  = self.get_words()
+    self.vocabulary = Vocabulary(words)
+    self.word_freqs = _countby(words, lambda w: w)
 
   def print_stats(self):
     info('Dataset statistics:')
@@ -46,6 +59,10 @@ class Dataset:
 
   def get_words(self):
     return [w for s in self.sentences for w in s]
+
+  def get_frequency(self, word):
+    assert word in self.word_freqs
+    return self.word_freqs[word]
 
 
 def load_dataset(filename, max_lines=None):

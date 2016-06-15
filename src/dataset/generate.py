@@ -23,10 +23,11 @@ def _fill_context_one_hots(X, ctx, V_C, maxlen, pad=None):
     _fill_char_one_hots(X[i], ctx[i], V_C, maxlen, pad)
 
 
-def _fill_weights(w, word, maxlen):
-  tok = w2tok(word, maxlen)
+def _fill_weights(w, word, dataset, maxlen):
+  freq = dataset.get_frequency(word)
+  tok  = w2tok(word, maxlen)
   for i in range(0, len(tok)):
-    w[i] = 1.
+    w[i] = min(max(1. / np.exp(np.sqrt(1. * freq / dataset.n_words)), .1), 1.)
 
 
 def _hot2word(hots, V_C):
@@ -60,7 +61,7 @@ def make_training_samples_generator(params, dataset, V_C):
         _fill_context_one_hots(Xctx[i], words[idx + i:idx + i + n_context], V_C, maxlen)
         _fill_char_one_hots(Xpred[i], SOW + words[idx + i + n_context], V_C, maxlen, pad=EOW)
         _fill_char_one_hots(y[i], words[idx + i + n_context], V_C, maxlen, pad=EOW)
-        _fill_weights(w[i], words[idx + i + n_context], maxlen)
+        _fill_weights(w[i], words[idx + i + n_context], dataset, maxlen)
       idx += actual_size
       if idx >= n_words:
         idx = 0
