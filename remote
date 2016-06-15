@@ -5,9 +5,11 @@ model_name="${prefix}-$(date +"%Y%m%dT%H%M%S")"
 mdir="~/c2w2c/MODELS/$model_name"
 remote_cmd="source ~/.bash_profile && cd $mdir && $@"
 
-ssh -t neuropurkki "mkdir -p $mdir/data && mkdir -p $mdir/src"
+ssh -t neuropurkki "mkdir -p $mdir/data && mkdir -p $mdir/src "
+echo "#!/usr/bin/env bash\n\n$remote_cmd\n" > run_model.sh && chmod 755 run_model.sh
 scp -r data/* neuropurkki:${mdir}/data/
 scp -r src/* neuropurkki:${mdir}/src/
-scp run neuropurkki:${mdir}
+scp run_model.sh run neuropurkki:${mdir}
+rm run_model.sh
 
-ssh -t neuropurkki "screen -UmS $model_name bash -c \"$remote_cmd\""
+ssh -t neuropurkki "screen -UmS $model_name bash -c \"$mdir/run_model.sh\""
