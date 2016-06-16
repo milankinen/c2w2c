@@ -69,6 +69,16 @@ def get_most_probable_word(pred, V_W, V_C, maxlen):
   return best
 
 
+def get_word_char_by_char(pred, V_C, maxlen):
+  word = ''
+  for i in range(0, maxlen):
+    ch = V_C.get_token(np.argmax(pred[i]))
+    if ch == EOW:
+      break
+    word += ch
+  return word
+
+
 def gen_text(params, lm, w2c, seeds, V_W, V_C, n_words=15):
   maxlen  = params.maxlen
   for seed in seeds:
@@ -82,6 +92,7 @@ def gen_text(params, lm, w2c, seeds, V_W, V_C, n_words=15):
       word = np.zeros(shape=(maxlen, V_C.size))
       sample_word_prediction_to(word, w2c, S_e, maxlen, V_C)
       best = get_most_probable_word(word, V_W, V_C, maxlen)
+      #best = get_word_char_by_char(word, V_C, maxlen)
       stdw(w2str(best) + ' ')
       ctx = ctx + [best]
     print ''
