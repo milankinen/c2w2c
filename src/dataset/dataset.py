@@ -67,3 +67,7 @@ class Dataset:
 
 def load_dataset(filename, max_lines=None):
   return Dataset(_make_sentences(_load_input(filename, max_lines)))
+
+
+def make_dataset_from_sentence(sent):
+  return Dataset(_make_sentences([sent]))

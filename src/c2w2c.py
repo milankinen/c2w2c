@@ -6,7 +6,7 @@ from keras.layers import TimeDistributed, Input
 from keras.models import Model
 from keras.optimizers import Adam
 
-from dataset import make_training_samples_generator, make_test_samples, load_dataset, make_char_vocabulary
+from dataset import make_training_samples_generator, make_test_samples, load_dataset, make_char_vocabulary, make_dataset_from_sentence
 from layers import FastDistribute
 from models import C2W, LanguageModel, W2C
 from util import info, Timer
