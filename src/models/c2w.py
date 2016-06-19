@@ -1,4 +1,4 @@
-from keras.layers import LSTM, Input, Dense, TimeDistributed, Masking, merge
+from keras.layers import LSTM, Input, Dense, TimeDistributed, Masking, Activation, merge
 from keras.models import Model
 from layers import Projection
 
@@ -24,5 +24,6 @@ def C2W(params, V_C):
   s_Ef      = Dense(params.d_W)(forward)
   s_Eb      = Dense(params.d_W)(backwards)
   s_E       = merge(inputs=[s_Ef, s_Eb], mode='sum')
+  #s_Eout    = Activation('tanh')(s_E)
 
   return Model(input=one_hots, output=s_E, name='W2C')
