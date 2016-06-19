@@ -3,3 +3,4 @@
 *.log
 *.pyc
 *.h5
+.DS_Store
