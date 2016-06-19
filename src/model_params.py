@@ -81,8 +81,8 @@ def from_cli_args():
                       d_C=50,
                       d_W=300,
                       d_Wi=150,
-                      d_L=1024,
-                      d_D=256)
+                      d_L=300,
+                      d_D=150)
 
   return ModelParams(parser.parse_args())
 
