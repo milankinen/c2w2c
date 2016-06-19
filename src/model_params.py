@@ -52,6 +52,7 @@ def _DataLimit(v):
     raise argparse.ArgumentTypeError("Data limit must be form <training-limit>:<test-limit>, e.g. 10:1")
   return int(limits[0]), int(limits[1])
 
+
 def from_cli_args():
   parser = argparse.ArgumentParser(description='C2W + W2C decoder')
   parser.add_argument('--training', metavar='filename', help='Training dataset filename')
