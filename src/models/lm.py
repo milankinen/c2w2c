@@ -8,7 +8,7 @@ def LanguageModel(params, V_C, state_seq=False):
     state_seq  :: True returns all intermediate states, False returns only the state (= word embedding)
                   of the predicted word
   """
-  context     = Input(shape=(None, params.d_W), dtype='float32')
+  context     = Input(shape=(None, params.d_W), dtype='floatX')
   s_Wi        = LSTM(params.d_L,
                      return_sequences=state_seq,
                      consume_less='gpu',

@@ -1,4 +1,4 @@
-from keras.layers import LSTM, TimeDistributed, Input, Dense, RepeatVector, merge
+from keras.layers import LSTM, TimeDistributed, Input, Dense, RepeatVector, merge, Activation
 from keras.models import Model
 from layers import Projection
 
@@ -11,7 +11,7 @@ def W2C(params, V_C, e_input=None, p_input=None):
   p_input   :: input for predicted characters (one-hots)
   """
   if e_input is None:
-    e_input = Input(shape=(params.d_W,), dtype='float32')
+    e_input = Input(shape=(params.d_W,), dtype='floatX')
   if p_input is None:
     p_input = Input(shape=(params.maxlen, V_C.size), dtype='int8', name='predicted_word')
 

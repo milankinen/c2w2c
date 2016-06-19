@@ -52,7 +52,7 @@ c2w2c     = Model(input=[ctx_in, pred_in], output=C_I)
 lm_Cin    = Input(shape=(None, params.maxlen, V_C.size), dtype='int8', name='context')
 lm_out    = LanguageModel(params, V_C, state_seq=True)(TimeDistributed(C2W(params, V_C))(lm_Cin))
 lm        = Model(input=lm_Cin, output=lm_out)
-w2c_Ein   = Input(shape=(params.d_W,), dtype='float32', name='embedding')
+w2c_Ein   = Input(shape=(params.d_W,), dtype='floatX', name='embedding')
 w2c_Pin   = Input(shape=(params.maxlen, V_C.size), dtype='int8', name='predicted_word')
 w2c       = W2C(params, V_C, e_input=w2c_Ein, p_input=w2c_Pin)
 
