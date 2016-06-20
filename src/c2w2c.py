@@ -121,6 +121,11 @@ prev_acc  = None
 
 
 def run_model_tests():
+  if params.gen_n_samples is not None:
+    print 'Generating %d sample sentences...' % params.gen_n_samples
+    generate_sample_sentences(params.gen_n_samples)
+    print ''
+
   print 'Validating model...'
   test_t.start()
   pp, oov = test_model(params, lm, w2c, test_samples, test_data.vocabulary, V_C)
@@ -132,12 +137,6 @@ def run_model_tests():
   - Total validation:   %s''' % (pp, delta_str(pp, prev_pp), oov, test_elapsed, test_tot)
   print ''
   info(validation_info)
-
-  if params.gen_n_samples is not None:
-    print 'Generating %d sample sentences...' % params.gen_n_samples
-    generate_sample_sentences(params.gen_n_samples)
-    print ''
-
   return pp, oov
 
 
