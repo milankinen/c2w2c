@@ -1,4 +1,4 @@
 from logging import *
-from minibatch_validator import *
+from mini_iteration import *
 from timer import *
 
