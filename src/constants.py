@@ -10,4 +10,6 @@ SOS = chr(2)
 # end of sentence token
 EOS = chr(3)
 
+# unknown word token (C2W2W word model only)
+UNK = '<UNK>'
 

@@ -1,6 +1,6 @@
-from constants import EOS, SOS
 from vocabulary import Vocabulary
-from util import info
+from ..constants import EOS, SOS, UNK
+from ..util import info
 
 
 def _countby(seq, f):
@@ -48,7 +48,7 @@ class Dataset:
     self.sentences  = sentences
     self.n_words    = sum(len(s) for s in self.sentences)
     words  = self.get_words()
-    self.vocabulary = Vocabulary(words)
+    self.vocabulary = Vocabulary(words + [UNK])
     self.word_freqs = _countby(words, lambda w: w)
 
   def print_stats(self):
