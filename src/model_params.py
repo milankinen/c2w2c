@@ -23,9 +23,11 @@ class ModelParams:
     self.test_data_limit  = self.limits[1] if self.limits is not None else None
     self.gen_n_samples    = args.gen_text
     self.test_only        = args.test_only
+    self.mode             = args.mode
 
   def print_params(self):
     info('Model parameters:')
+    info(' - Mode:             %s' % self.mode.upper())
     info(' - Training dataset: %s' % self.training_dataset)
     info(' - Test dataset:     %s' % self.test_dataset)
     if self.limits:
@@ -73,12 +75,14 @@ def from_cli_args():
   parser.add_argument('--d_D', type=int, metavar='n', help='W2C Decoder state dimension')
   parser.add_argument('--gen-text', type=int, metavar='n', help='Generate N sample sentences after each epoch')
   parser.add_argument('--test-only', '-T', action='store_true', help='Run only PP test and (optional) text generation')
+  parser.add_argument('--mode', metavar='c2w2c|word|w2c_train', help='Select which mode to run')
   parser.set_defaults(context_size=10,
                       batch_size=50,
                       learning_rate=0.001,
                       num_epoch=1000,
                       max_word_length=25,
                       test_only=False,
+                      mode='c2w2c',
                       d_C=50,
                       d_W=300,
                       d_Wi=150,
