@@ -19,18 +19,12 @@ class LanguageModel(Model):
     # case) by masking them by using another input value
     w_nmasked     = LMMask(0.)([Reshape((1, d_W))(w_n), w_nmask])
 
-    # Using stateful LSTM for language model - store layer as member so that the
-    # model fitting code resets the state after each sentence
-    self._lstm    = LSTM(d_L,
+    # Using stateful LSTM for language model - model fitting code resets the
+    # state after each sentence
+    w_np1E        = LSTM(d_L,
                          trainable=trainable,
                          return_sequences=False,
                          stateful=True,
-                         consume_less='gpu')
-
-    w_np1E        = self._lstm(w_nmasked)
+                         consume_less='gpu')(w_nmasked)
 
     super(LanguageModel, self).__init__(input=[w_n, w_nmask], output=w_np1E, name='LanguageModel')
-
-  def reset_state(self):
-    self._lstm.reset_states()
-

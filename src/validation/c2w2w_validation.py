@@ -21,13 +21,13 @@ def _calc_perplexity(V_W, expectations, predictions):
   return (0.0 if n_tested == 0 else np.exp(tot_loss / n_tested)), n_oov, n_tested
 
 
-def _test_model(c2w2w, reset_lm, samples, V_W, quick_mode=False):
+def _test_model(c2w2w, samples, V_W, quick_mode=False):
   total_samples = 0
   total_pp      = 0.0
   total_tested  = 0
   total_oov     = 0
   for expectations, X in samples:
-    reset_lm()
+    c2w2w.reset_states()
     predictions     = c2w2w.predict(X, batch_size=1)
     pp, oov, tested = _calc_perplexity(V_W, expectations, predictions)
     if np.isnan(pp):
@@ -46,7 +46,7 @@ def _test_model(c2w2w, reset_lm, samples, V_W, quick_mode=False):
   return pp_avg, oov_rate
 
 
-def make_c2w2w_test_function(c2w2w, reset_lm, params, dataset, V_C, V_W):
+def make_c2w2w_test_function(c2w2w, params, dataset, V_C, V_W):
   sents   = dataset.sentences
   maxlen  = params.maxlen
   samples = []
@@ -60,9 +60,9 @@ def make_c2w2w_test_function(c2w2w, reset_lm, params, dataset, V_C, V_W):
 
   def test_model(limit=None):
     if limit is None:
-      return _test_model(c2w2w, reset_lm, samples, V_W, quick_mode=False)
+      return _test_model(c2w2w, samples, V_W, quick_mode=False)
     else:
-      return _test_model(c2w2w, reset_lm, samples[0: min(len(samples), limit)], V_W, quick_mode=True)
+      return _test_model(c2w2w, samples[0: min(len(samples), limit)], V_W, quick_mode=True)
 
   return test_model
 

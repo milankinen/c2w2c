@@ -74,14 +74,14 @@ def _sample_word_predictions(w2c, W_np1e, maxlen, V_C):
   return predictions
 
 
-def _test_model(params, lm, reset_lm, w2c, samples, V_W, V_C, quick_mode=False):
+def _test_model(params, lm, w2c, samples, V_W, V_C, quick_mode=False):
   maxlen        = params.maxlen
   total_samples = 0
   total_pp      = 0.0
   total_tested  = 0
   total_oov     = 0
   for expectations, X in samples:
-    reset_lm()
+    lm.reset_states()
     W_np1e          = lm.predict(X, batch_size=1)
     predictions     = _sample_word_predictions(w2c, W_np1e, maxlen, V_C)
     pp, oov, tested = _calc_perplexity(V_W, V_C, expectations, predictions, params.maxlen, quick_mode)
@@ -101,7 +101,7 @@ def _test_model(params, lm, reset_lm, w2c, samples, V_W, V_C, quick_mode=False):
   return pp_avg, oov_rate
 
 
-def make_c2w2c_test_function(lm, reset_lm, w2c, params, dataset, V_C, V_W):
+def make_c2w2c_test_function(lm, w2c, params, dataset, V_C, V_W):
   sents   = dataset.sentences
   maxlen  = params.maxlen
   samples = []
@@ -115,9 +115,9 @@ def make_c2w2c_test_function(lm, reset_lm, w2c, params, dataset, V_C, V_W):
 
   def test_model(limit=None):
     if limit is None:
-      return _test_model(params, lm, reset_lm, w2c, samples, V_W, V_C, quick_mode=False)
+      return _test_model(params, lm, w2c, samples, V_W, V_C, quick_mode=False)
     else:
-      return _test_model(params, lm, reset_lm, w2c, samples[0: min(len(samples), limit)], V_W, V_C, quick_mode=True)
+      return _test_model(params, lm, w2c, samples[0: min(len(samples), limit)], V_W, V_C, quick_mode=True)
 
   return test_model
 

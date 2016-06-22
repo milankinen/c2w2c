@@ -11,7 +11,7 @@ from c2w2c import C2W2C
 from c2w2w import C2W2W
 from dataset import load_dataset, make_char_vocabulary
 from training import prepare_c2w2c_training_data, prepare_c2w2w_training_data
-from util import info, Timer, MinibatchValidator
+from util import info, Timer, MiniIteration
 from validation import make_c2w2c_test_function, make_c2w2w_test_function
 
 sys.setrecursionlimit(40000)
@@ -57,7 +57,7 @@ def build_c2w2c_validation_models():
   compile_model(c2wp1, returns_chars=False)
   compile_model(w2c, returns_chars=True)
 
-  return c2wp1, w2c, lm
+  return c2wp1, w2c
 
 
 def load_weights(model, filename):
@@ -73,7 +73,7 @@ def prepare_env(mode):
   if mode == 'c2w2c':
     # Train c2w2c model as it is
     trainable_model, (c2w, lm, w2c), _  = C2W2C(params.n_batch, params, V_C)
-    v_c2wp1, v_w2c, v_lm                = build_c2w2c_validation_models()
+    v_c2wp1, v_w2c                      = build_c2w2c_validation_models()
     compile_model(trainable_model, returns_chars=True)
     load_weights(trainable_model, params.init_weight_file)
 
@@ -82,7 +82,7 @@ def prepare_env(mode):
       v_c2wp1.layers[-1].set_weights(lm.get_weights())
       v_w2c.set_weights(w2c.get_weights())
 
-    test_model        = make_c2w2c_test_function(v_c2wp1, lambda: v_lm.reset_state(), v_w2c, params, test_dataset, V_C, V_W)
+    test_model        = make_c2w2c_test_function(v_c2wp1, v_w2c, params, test_dataset, V_C, V_W)
     training_data     = prepare_c2w2c_training_data(params, training_dataset, V_C)
 
   elif mode == 'w2c_train':
@@ -106,8 +106,8 @@ def prepare_env(mode):
     """
     raise NotImplementedError
   elif mode == 'c2w2w':
-    trainable_model, (_, lm, _), _    = C2W2W(params.n_batch, params, V_C, V_W)
-    validation_model, (_, v_lm, _), _ = C2W2W(1, params, V_C, V_W)
+    trainable_model, _, _   = C2W2W(params.n_batch, params, V_C, V_W)
+    validation_model, _, _  = C2W2W(1, params, V_C, V_W)
     compile_model(trainable_model, returns_chars=False)
     compile_model(validation_model, returns_chars=False)
     load_weights(trainable_model, params.init_weight_file)
@@ -115,53 +115,26 @@ def prepare_env(mode):
     def update_weights():
       validation_model.set_weights(trainable_model.get_weights())
 
-    test_model        = make_c2w2w_test_function(validation_model, lambda: v_lm.reset_state(), params, test_dataset, V_C, V_W)
+    test_model        = make_c2w2w_test_function(validation_model, params, test_dataset, V_C, V_W)
     training_data     = prepare_c2w2w_training_data(params, training_dataset, V_C, V_W)
 
   else:
     print 'Invalid mode: %s' % mode
     sys.exit(1)
 
-  def reset_fn():
-    lm.reset_state()
-
   def test_fn(limit=None):
     update_weights()
     return test_model(limit)
 
-  return trainable_model, test_fn, reset_fn, training_data
+  return trainable_model, test_fn, training_data
 
 
 MODE = params.mode
-model, run_tests, reset_model, t_data = prepare_env(MODE)
+model, run_tests, t_data = prepare_env(MODE)
 
 
-X = np.zeros(shape=(50, params.maxlen, V_C.size), dtype=np.bool)
-X[0, 0, 2] = 1
-X[0, 1, 2] = 1
-X[1, 0, 0] = 1
-
-"""
-c2w = model.layers[1]
-for i in range(0, len(c2w.layers)):
-  get_out = K.function([c2w.layers[0].input, K.learning_phase()],
-                       [c2w.layers[i].output])
-  print '----- layer output %d ----' % i
-  print get_out([X, 1])[0]#.tolist()
-
-print c2w.layers
-for i in range(2, len(model.layers)):
-  get_out = K.function([model.layers[0].input, K.learning_phase()],
-                       [model.layers[i].output])
-  print '----- layer output %d ----' % i
-  print get_out([X, 1])[0]#.tolist()
-
-raise "asd"
-"""
-
-
-def delta_str(cur, prev):
-  return '(%s%f)' % ('-' if cur < prev else '+', abs(prev - cur)) if prev is not None else ''
+def delta_str(cur, prev, fmt='(%s%f)'):
+  return fmt % ('-' if cur < prev else '+', abs(prev - cur)) if prev is not None else ''
 
 fit_t   = Timer()
 test_t  = Timer()
@@ -180,10 +153,10 @@ def run_model_tests(prev_pp):
   pp, oov = run_tests()
   test_elapsed, test_tot = test_t.lap()
   validation_info = '''Validation results:
-  - Perplexity:         %f %s
+  - Perplexity:         %.5e %s
   - OOV rate:           %f
   - Validation took:    %s
-  - Total validation:   %s''' % (pp, delta_str(pp, prev_pp), oov, test_elapsed, test_tot)
+  - Total validation:   %s''' % (pp, delta_str(pp, prev_pp, '(%s%.5e)'), oov, test_elapsed, test_tot)
   print ''
   info(validation_info)
   return pp, oov
@@ -202,18 +175,13 @@ try:
     epoch = e + 1
     print '=== Epoch %d ===' % epoch
 
-    def set_weights(w):
-      model.set_weights(w)
-
-    def get_weights():
-      return np.array(model.get_weights())
-
-    reset_model()
     n_samples, make_gen = t_data
     sentence_seq, data_generator = make_gen()
+
+    model.reset_states()
     h = model.fit_generator(generator=data_generator,
                             samples_per_epoch=n_samples,
-                            callbacks=[MinibatchValidator(100, prev_pp, sentence_seq, reset_model, run_tests, get_weights, set_weights)],
+                            callbacks=[MiniIteration(prev_pp, sentence_seq, model, run_tests, run_minitest_after=100)],
                             nb_epoch=1,
                             verbose=1)
     fit_elapsed, fit_tot = fit_t.lap()
@@ -233,7 +201,7 @@ try:
     pp, _ = run_model_tests(prev_pp)
 
     if prev_pp is None or pp < prev_pp:
-      best_weights = get_weights()
+      best_weights = np.array(model.get_weights())
       prev_acc  = acc
       prev_loss = loss
       prev_pp   = pp
@@ -242,8 +210,8 @@ try:
         model.save_weights(filename, overwrite=True)
         info('Model weights saved to %s' % filename)
     else:
-      print 'Got worse perplexity from validation. Resetting weights...'
-      set_weights(best_weights)
+      print 'Perplexity didn\'t improve. Resetting weights...'
+      model.set_weights(best_weights)
 
   print 'Training complete'
 except KeyboardInterrupt:
