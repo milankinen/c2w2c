@@ -165,10 +165,10 @@ def run_model_tests(prev_pp):
   pp, oov = run_tests()
   test_elapsed, test_tot = test_t.lap()
   validation_info = '''Validation results:
-  - Perplexity:         %.5e %s
+  - Perplexity:         %3g %s
   - OOV rate:           %f
   - Validation took:    %s
-  - Total validation:   %s''' % (pp, delta_str(pp, prev_pp, '(%s%.5e)'), oov, test_elapsed, test_tot)
+  - Total validation:   %s''' % (pp, delta_str(pp, prev_pp, '(%s%3g)'), oov, test_elapsed, test_tot)
   print ''
   info(validation_info)
   return pp, oov
