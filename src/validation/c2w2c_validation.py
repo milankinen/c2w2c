@@ -66,7 +66,7 @@ def _sample_word_predictions(w2c, W_np1e, maxlen, V_C):
         # calculation the when EOW character is encountered
         for k in range(j + 1, maxlen):
           np.copyto(predictions[i, k], step[k])
-        return predictions
+        break
       elif j < maxlen - 1:
         # use predicted char as a sample for next character prediction
         w_np1c[0, j + 1, EOW_idx]  = 0
@@ -115,7 +115,7 @@ def make_c2w2c_test_function(lm, w2c, params, dataset, V_C, V_W):
 
   def test_model(limit=None):
     if limit is None:
-      return _test_model(params, lm, w2c, samples, V_W, V_C, quick_mode=False)
+      return _test_model(params, lm, w2c, samples, V_W, V_C, quick_mode=True)
     else:
       return _test_model(params, lm, w2c, samples[0: min(len(samples), limit)], V_W, V_C, quick_mode=True)
 
