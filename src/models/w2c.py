@@ -1,5 +1,6 @@
 from keras.layers import LSTM, TimeDistributed, Input, Dense, RepeatVector, merge
 from keras.models import Model
+from ..layers import ProjectionOverTime
 
 
 class W2C(Model):
@@ -22,9 +23,6 @@ class W2C(Model):
                    return_sequences=True,
                    consume_less='gpu')(w_EC)
 
-    c_I     = TimeDistributed(Dense(V_C.size,
-                                    activation='softmax',
-                                    bias=False,
-                                    trainable=trainable))(c_E)
+    c_I     = ProjectionOverTime(V_C.size, trainable=trainable)(c_E)
 
     super(W2C, self).__init__(input=[w_np1E, w_np1c], output=c_I, name='W2C')

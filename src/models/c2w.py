@@ -1,5 +1,6 @@
-from keras.layers import LSTM, Input, Dense, Masking, merge, TimeDistributedDense
+from keras.layers import LSTM, Input, Dense, Masking, merge
 from keras.models import Model
+from ..layers import ProjectionOverTime
 
 
 class C2W(Model):
@@ -12,11 +13,8 @@ class C2W(Model):
       V_C      :: character vocabulary
     """
 
-    # Using time TimeDistributedDense(...) instead of TimeDistributed(Dense(...)) because:
-    # 1) it supports masking (creating mask from integers is safer because 0. != 0. sometimes)
-    # 2) it uses reshaping instead of scan even if batch_shape is defined (faster!)
     c_I       = Input(shape=(maxlen, V_C.size), dtype='int8')
-    c_E       = TimeDistributedDense(d_C, bias=False, trainable=trainable)(Masking(0.)(c_I))
+    c_E       = ProjectionOverTime(d_C, trainable=trainable)(Masking(0.)(c_I))
 
     forward   = LSTM(d_Wi,
                      return_sequences=False,

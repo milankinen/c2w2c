@@ -1,4 +1,4 @@
-from keras.layers import Input, Dropout
+from keras.layers import Input, Dropout, Activation
 from keras.models import Model
 
 from models import C2W, LanguageModel, W2C
@@ -29,7 +29,7 @@ def C2W2C(n_batch, params, V_C, c2w_trainable=True, lm_trainable=True, w2c_train
   # the actual c2w2c model
   w_nE      = Dropout(.5)(c2w(w_nc))
   w_np1E    = Dropout(.5)(lm([w_nE, w_nmask]))
-  w_np1     = w2c([w_np1E, w_np1c])
+  w_np1     = Activation('softmax')(w2c([w_np1E, w_np1c]))
   c2w2c     = Model(input=[w_nc, w_nmask, w_np1c], output=w_np1)
 
   return c2w2c, (c2w, lm, w2c), (w_nc, w_nmask, w_np1c)
