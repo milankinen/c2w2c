@@ -14,9 +14,9 @@ fi
 device=${DEVICE:-gpu}
 
 if [ "x$MODE" == "xdev" ]; then
-  flags=mode=FAST_COMPILE,device=cpu,floatX=float32,optimizer=None
+  flags=mode=FAST_COMPILE,device=cpu,floatX=float32,optimizer=None,exception_verbosity=high
 else
   flags=mode=FAST_RUN,device=$device,floatX=float32
 fi
 
-THEANO_FLAGS=$flags python $@
+THEANO_FLAGS=$flags python -m src $@
