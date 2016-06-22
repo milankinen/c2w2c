@@ -10,7 +10,10 @@ ssh -t ${host} "mkdir -p $mdir/data && mkdir -p $mdir/src "
 echo "#!/usr/bin/env bash
 $remote_cmd
 " > run_model.sh && chmod 755 run_model.sh
-scp -r data/* ${host}:${mdir}/data/
+
+find ./src -name "*.pyc" -exec rm -rf {} \;
+
+#scp -r data/* ${host}:${mdir}/data/
 scp -r src/* ${host}:${mdir}/src/
 scp run_model.sh run ${host}:${mdir}
 rm run_model.sh

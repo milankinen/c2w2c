@@ -19,4 +19,6 @@ else
   flags=mode=FAST_RUN,device=$device,floatX=float32
 fi
 
+find ./src -name "*.pyc" -exec rm -rf {} \;
+
 THEANO_FLAGS=$flags python -m src $@
