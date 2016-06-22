@@ -25,6 +25,7 @@ class ModelParams:
     self.gen_n_samples    = args.gen_text
     self.test_only        = args.test_only
     self.mode             = args.mode
+    self.mini_iteration   = args.mini_iteration
 
   def print_params(self):
     info('Model parameters:')
@@ -36,6 +37,7 @@ class ModelParams:
     info(' - Context size:     %d' % self.n_context)
     info(' - Batch size:       %d' % self.n_batch)
     info(' - Number of epoch:  %d' % self.n_epoch)
+    info(' - Mini-iteration:   %s' % 'no' if self.mini_iteration is None else str(self.mini_iteration))
     info(' - d_C:              %d' % self.d_C)
     info(' - d_W:              %d' % self.d_W)
     info(' - d_Wi:             %d' % self.d_Wi)
@@ -77,6 +79,7 @@ def from_cli_args():
   parser.add_argument('--gen-text', type=int, metavar='n', help='Generate N sample sentences after each epoch')
   parser.add_argument('--test-only', '-T', action='store_true', help='Run only PP test and (optional) text generation')
   parser.add_argument('--mode', metavar='c2w2c|word|w2c_train', help='Select which mode to run')
+  parser.add_argument('--mini-iteration', type=int, metavar='n', help='Run mini PP tests after mini-iterations of N batches')
   parser.set_defaults(context_size=10,
                       batch_size=50,
                       learning_rate=0.001,
