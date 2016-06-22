@@ -3,11 +3,10 @@ import sys
 from time import strftime, localtime
 
 import numpy as np
-from keras.models import Model
 from keras.optimizers import Adam
 
 import model_params
-from c2w2c import C2W2C
+from c2w2c import C2W2C, build_c2w2c_validation_models
 from c2w2w import C2W2W
 from dataset import load_dataset, make_char_vocabulary
 from training import prepare_c2w2c_training_data, prepare_c2w2w_training_data
@@ -46,20 +45,6 @@ def compile_model(model, returns_chars=True):
                 metrics=['accuracy'])
 
 
-def build_c2w2c_validation_models():
-  _, (c2w, lm, w2c), inputs = C2W2C(1, params, V_C)
-  w_nc, w_nmask, w_np1c     = inputs
-
-  w_nE      = c2w(w_nc)
-  w_np1E    = lm([w_nE, w_nmask])
-  c2wp1     = Model(input=[w_nc, w_nmask], output=w_np1E)
-
-  compile_model(c2wp1, returns_chars=False)
-  compile_model(w2c, returns_chars=True)
-
-  return c2wp1, w2c
-
-
 def load_weights(model, filename):
   if filename:
     if path.isfile(filename):
@@ -77,14 +62,15 @@ def prepare_env(mode):
   if mode == 'c2w2c':
     # Train c2w2c model as it is
     trainable_model, (c2w, lm, w2c), _  = C2W2C(params.n_batch, params, V_C)
-    v_c2wp1, v_w2c                      = build_c2w2c_validation_models()
+    v_c2wp1, v_w2c                      = build_c2w2c_validation_models(params, V_C)
     compile_model(trainable_model, returns_chars=True)
+    compile_model(v_c2wp1, returns_chars=False)
+    compile_model(v_w2c, returns_chars=True)
     load_weights(trainable_model, params.init_weight_file)
 
     #print trainable_model.layers
     def update_weights():
-      v_c2wp1.layers[-2].set_weights(c2w.get_weights())
-      v_c2wp1.layers[-1].set_weights(lm.get_weights())
+      v_c2wp1.set_weights(c2w.get_weights() + lm.get_weights())
       v_w2c.set_weights(w2c.get_weights())
 
     test_model        = make_c2w2c_test_function(v_c2wp1, v_w2c, params, test_dataset, V_C, V_W)
