@@ -118,8 +118,8 @@ def prepare_env(mode):
     """
     raise NotImplementedError
   elif mode == 'c2w2w':
-    trainable_model, _, _   = C2W2W(params.n_batch, params, V_C, V_W)
-    validation_model, _, _  = C2W2W(1, params, V_C, V_W)
+    trainable_model   = C2W2W(params.n_batch, params, V_C, V_W)
+    validation_model  = C2W2W(1, params, V_C, V_W)
     compile_model(trainable_model, returns_chars=False)
     compile_model(validation_model, returns_chars=False)
     load_weights(trainable_model, params.init_weight_file)
@@ -129,6 +129,9 @@ def prepare_env(mode):
 
     test_model        = make_c2w2w_test_function(validation_model, params, test_dataset, V_C, V_W)
     training_data     = prepare_c2w2w_training_data(params, training_dataset, V_C, V_W)
+
+    print 'Model parameters:'
+    print ' - Total:%10s' % str(param_count(trainable_model))
 
   else:
     print 'Invalid mode: %s' % mode

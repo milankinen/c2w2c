@@ -30,5 +30,5 @@ def C2W2W(n_batch, params, V_C, V_W, c2w_trainable=True, lm_trainable=True, w2c_
   w_np1     = Activation('softmax')(w2w(w_np1E))
   c2w2w     = Model(input=[w_nc, w_nmask], output=w_np1)
 
-  return c2w2w, (c2w, lm, w2w), (w_nc, w_nmask)
+  return c2w2w
 
