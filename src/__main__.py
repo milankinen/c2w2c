@@ -190,10 +190,12 @@ try:
     n_samples, make_gen = t_data
     sentence_seq, data_generator = make_gen()
 
+    mini_iter = MiniIteration(prev_pp, sentence_seq, model, run_tests,
+                              run_minitest_after=params.mini_iteration)
     model.reset_states()
     h = model.fit_generator(generator=data_generator,
                             samples_per_epoch=n_samples,
-                            callbacks=[MiniIteration(prev_pp, sentence_seq, model, run_tests, run_minitest_after=100)],
+                            callbacks=[mini_iter],
                             nb_epoch=1,
                             verbose=1)
     fit_elapsed, fit_tot = fit_t.lap()
@@ -212,7 +214,7 @@ try:
     # needed for validation models LM and W2C
     pp, _ = run_model_tests(prev_pp)
 
-    if prev_pp is None or pp < prev_pp:
+    if prev_pp is None or pp <= prev_pp:
       best_weights = np.array(model.get_weights())
       prev_acc  = acc
       prev_loss = loss
