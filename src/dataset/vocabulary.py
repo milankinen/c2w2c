@@ -1,3 +1,6 @@
+from ..constants import SOW, EOW
+
+
 class Vocabulary:
   def __init__(self, tokens):
     self.tokens     = sorted(set(tokens))
@@ -16,3 +19,8 @@ class Vocabulary:
 
   def has(self, token):
     return token in self.idx_lookup
+
+
+def make_char_vocabulary(datasets):
+  tokens = [tok for s in datasets for tok in s.vocabulary.tokens]
+  return Vocabulary(list(''.join(tokens)) + [SOW, EOW])
