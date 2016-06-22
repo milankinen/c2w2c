@@ -31,7 +31,6 @@ class Projection(Layer):
       del self.initial_weights
 
   def call(self, x, mask=None):
-    print mask
     return self.activation(K.dot(x, self.W))
 
   def get_output_shape_for(self, input_shape):
@@ -56,7 +55,7 @@ class ProjectionOverTime(TimeDistributed):
 
     # (nb_samples, timesteps, ...) => (nb_samples * timesteps, ...)
     X = K.reshape(X, (-1, ) + input_shape[2:])
-    y = self.layer.call(X)  # (nb_samples * timesteps, ...)
+    y = self.layer.call(X, mask)
 
     # (nb_samples * timesteps, ...) => (nb_samples, timesteps, ...)
     return K.reshape(y, (-1, input_length) + output_shape[2:])
