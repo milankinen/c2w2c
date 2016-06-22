@@ -69,6 +69,10 @@ def load_weights(model, filename):
       print 'Initial weight file not found: %s' % filename
 
 
+def param_count(m):
+  return sum([w.size for w in m.get_weights()])
+
+
 def prepare_env(mode):
   if mode == 'c2w2c':
     # Train c2w2c model as it is
@@ -77,6 +81,7 @@ def prepare_env(mode):
     compile_model(trainable_model, returns_chars=True)
     load_weights(trainable_model, params.init_weight_file)
 
+    #print trainable_model.layers
     def update_weights():
       v_c2wp1.layers[-2].set_weights(c2w.get_weights())
       v_c2wp1.layers[-1].set_weights(lm.get_weights())
@@ -84,6 +89,13 @@ def prepare_env(mode):
 
     test_model        = make_c2w2c_test_function(v_c2wp1, v_w2c, params, test_dataset, V_C, V_W)
     training_data     = prepare_c2w2c_training_data(params, training_dataset, V_C)
+
+    print 'Model parameters:'
+    print ' - C2W:%10s' % str(param_count(c2w))
+    print ' - LM: %10s' % str(param_count(lm))
+    print ' - W2C:%10s' % str(param_count(w2c))
+    print '       %s' % ('-' * 10)
+    print '       %10s' % str(sum([param_count(m) for m in [c2w, lm, w2c]]))
 
   elif mode == 'w2c_train':
     """
