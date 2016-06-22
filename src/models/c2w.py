@@ -1,29 +1,35 @@
-from keras.layers import LSTM, Input, Dense, TimeDistributed, Masking, Activation, merge
+from keras.layers import LSTM, Input, Dense, Masking, merge, TimeDistributedDense
 from keras.models import Model
-from layers import Projection
 
 
-def C2W(params, V_C):
-  one_hots  = Input(shape=(params.maxlen, V_C.size), dtype='int8')
-  c_E       = TimeDistributed(Projection(params.d_C))(one_hots)
-  # we want to preserve the state in case of padding so that the state
-  # sequence s_Ef and s_Eb last values remain correct
-  c_E_mask  = Masking(mask_value=0.)(c_E)
+class C2W(Model):
+  def __init__(self, maxlen, d_C, d_W, d_Wi, V_C, trainable=True):
+    """
+      maxlen   :: maximum input word length
+      d_C      :: character features (input embedding vector size)
+      d_W      :: word features (output word embedding vector size)
+      d_Wi     :: internal encoder state dimension
+      V_C      :: character vocabulary
+    """
 
-  forward   = LSTM(params.d_Wi,
-                   go_backwards=False,
-                   dropout_U=0.1,
-                   dropout_W=0.1,
-                   consume_less='gpu')(c_E_mask)
-  backwards = LSTM(params.d_Wi,
-                   go_backwards=True,
-                   dropout_U=0.1,
-                   dropout_W=0.1,
-                   consume_less='gpu')(c_E_mask)
+    # Using time TimeDistributedDense(...) instead of TimeDistributed(Dense(...)) because:
+    # 1) it supports masking (creating mask from integers is safer because 0. != 0. sometimes)
+    # 2) it uses reshaping instead of scan even if batch_shape is defined (faster!)
+    c_I       = Input(shape=(maxlen, V_C.size), dtype='int8')
+    c_E       = TimeDistributedDense(d_C, bias=False, trainable=trainable)(Masking(0.)(c_I))
 
-  s_Ef      = Dense(params.d_W)(forward)
-  s_Eb      = Dense(params.d_W)(backwards)
-  s_E       = merge(inputs=[s_Ef, s_Eb], mode='sum')
-  #s_Eout    = Activation('tanh')(s_E)
+    forward   = LSTM(d_Wi,
+                     return_sequences=False,
+                     go_backwards=False,
+                     consume_less='gpu')(c_E)
+    backwards = LSTM(d_Wi,
+                     return_sequences=False,
+                     go_backwards=True,
+                     consume_less='gpu')(c_E)
 
-  return Model(input=one_hots, output=s_E, name='W2C')
+    s_Ef      = Dense(d_W, trainable=trainable)(forward)
+    s_Eb      = Dense(d_W, trainable=trainable)(backwards)
+    s_E       = merge(inputs=[s_Ef, s_Eb], mode='sum')
+
+    super(C2W, self).__init__(input=c_I, output=s_E, name='C2W')
+
