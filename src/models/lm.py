@@ -1,7 +1,7 @@
 from keras.layers import LSTM, Input, Reshape
 from keras.models import Model
 
-from ..layers import LMMask
+from ..layers import LMMask, Projection
 
 
 class LanguageModel(Model):
@@ -21,10 +21,12 @@ class LanguageModel(Model):
 
     # Using stateful LSTM for language model - model fitting code resets the
     # state after each sentence
-    w_np1E        = LSTM(d_L,
+    w_np1Ei       = LSTM(d_L,
                          trainable=trainable,
                          return_sequences=False,
                          stateful=True,
                          consume_less='gpu')(w_nmasked)
+
+    w_np1E        = Projection(d_W)(w_np1Ei)
 
     super(LanguageModel, self).__init__(input=[w_n, w_nmask], output=w_np1E, name='LanguageModel')

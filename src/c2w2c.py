@@ -24,7 +24,7 @@ def C2W2C(n_batch, params, V_C, c2w_trainable=True, lm_trainable=True, w2c_train
   # sub-models
   c2w       = C2W(maxlen, d_C, d_W, d_Wi, V_C, trainable=c2w_trainable)
   lm        = LanguageModel(n_batch, d_W, d_L, trainable=lm_trainable)
-  w2c       = W2C(n_batch, maxlen, d_L, d_D, V_C, trainable=w2c_trainable)
+  w2c       = W2C(n_batch, maxlen, d_W, d_D, V_C, trainable=w2c_trainable)
 
   # the actual c2w2c model
   w_nE      = Dropout(.5)(c2w(w_nc))
@@ -36,7 +36,7 @@ def C2W2C(n_batch, params, V_C, c2w_trainable=True, lm_trainable=True, w2c_train
 
 
 def build_c2w2c_validation_models(params, V_C):
-  d_L = params.d_L
+  d_W = params.d_W
 
   _, (c2w, lm, w2c), inputs = C2W2C(1, params, V_C)
   w_nc, w_nmask, w_np1c     = inputs
@@ -45,7 +45,7 @@ def build_c2w2c_validation_models(params, V_C):
   w_np1E    = lm([w_nE, w_nmask])
   c2wp1     = Model(input=[w_nc, w_nmask], output=w_np1E)
 
-  w_np1Ein  = Input(batch_shape=(1, d_L), name='w_np1e', dtype='floatX')
+  w_np1Ein  = Input(batch_shape=(1, d_W), name='w_np1e', dtype='floatX')
   w_np1     = Activation('softmax')(w2c([w_np1Ein, w_np1c]))
   w2c       = Model(input=[w_np1Ein, w_np1c], output=w_np1)
 
