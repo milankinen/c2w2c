@@ -1,5 +1,6 @@
-from keras.layers import LSTM, Input, Dropout, Reshape
+from keras.layers import LSTM, Input, Reshape
 from keras.models import Model
+
 from ..layers import LMMask
 
 

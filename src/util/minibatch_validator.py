@@ -1,4 +1,4 @@
-import sys, time
+import sys
 
 from keras.callbacks import Callback
 

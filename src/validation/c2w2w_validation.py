@@ -1,4 +1,5 @@
-import sys, numpy as np
+import numpy as np
+import sys
 
 from ..common import w2str
 from ..dataset.helpers import fill_word_one_hots

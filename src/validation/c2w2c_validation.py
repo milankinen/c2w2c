@@ -1,4 +1,5 @@
-import sys, numpy as np
+import numpy as np
+import sys
 
 from ..common import w2tok, w2str, is_oov
 from ..constants import SOW, EOW

@@ -1,20 +1,15 @@
-import numpy as np
 import os.path as path
 import sys
 from time import strftime, localtime
 
-import theano.tensor as T
-
-from keras import backend as K
-from keras.callbacks import Callback
-from keras.layers import Input, Dense
+import numpy as np
 from keras.models import Model
 from keras.optimizers import Adam
 
 import model_params
-from dataset import load_dataset, make_char_vocabulary
 from c2w2c import C2W2C
 from c2w2w import C2W2W
+from dataset import load_dataset, make_char_vocabulary
 from training import prepare_c2w2c_training_data, prepare_c2w2w_training_data
 from util import info, Timer, MinibatchValidator
 from validation import make_c2w2c_test_function, make_c2w2w_test_function
