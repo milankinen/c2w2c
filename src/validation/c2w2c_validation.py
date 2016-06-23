@@ -1,180 +1,137 @@
 import numpy as np
 import sys
 
-from ..common import w2tok, w2str, is_oov
-from ..constants import SOW, EOW, EOS
+from ..common import w2tok, is_oov
+from ..constants import SOW, EOW
 from ..dataset.helpers import fill_word_one_hots
+from ..datagen import _prepare_data, _to_c2w2c_samples
 
 
-def _get_word_probabilities(V_C, V_W, maxlen, pred):
-  p_all = np.zeros(shape=(V_W.size,), dtype=np.float64)
-  for word in V_W.tokens:
-    tok = w2tok(word, maxlen, pad=EOW)
-    p_all[V_W.get_index(word)] = np.prod([pred[i, V_C.get_index(ch)] for i, ch in enumerate(tok)])
-  return p_all
+def _calc_word_probability(word, p_chars, maxlen, V_C):
+  def char_p(ch, i):
+    return p_chars[i, V_C.get_index(ch)] / np.sum(p_chars[i])
+  tok = w2tok(word, maxlen, pad=EOW)
+  return np.prod([char_p(ch, i) for i, ch in enumerate(tok)])
 
 
-def _calc_word_loss(expected, pred, V_C, V_W, maxlen):
-  p_all = _get_word_probabilities(V_C, V_W, maxlen, pred)
+def _calc_word_loss_over_vocabulary(w2c, w_np1e, expected, V_C, V_W, maxlen):
+  W_np1e = np.reshape(w_np1e, (1,) + w_np1e.shape)
+  p_words, p_expected = [], None
 
-  p = p_all[V_W.get_index(expected)] / np.sum(p_all)
-  return -np.log(p)
+  def p_chars(word):
+    w_np1c = np.zeros(shape=(1, maxlen, V_C.size), dtype=np.bool)
+    fill_word_one_hots(w_np1c[0], word, V_C, maxlen, pad=EOW)
+    return w2c.predict({'w_np1e': W_np1e, 'w_np1c': w_np1c}, batch_size=1)[0]
 
-
-def _calc_word_loss_quick(expected, pred, V_C, maxlen):
-  def char_loss(i, ch):
-    return -np.log(pred[i, V_C.get_index(ch)] / np.sum(pred[i]))
-  tok = w2tok(expected, maxlen, pad=None)
-  return np.sum([char_loss(i, ch) for i, ch in enumerate(tok)])
-
-
-def _calc_perplexity(V_W, V_C, expectations, predictions, maxlen, quick_mode):
-  tot_loss  = 0.
-  n_oov     = 0
-  n_tested  = 0
-  for idx, expected in enumerate(expectations):
-    if is_oov(expected, maxlen):
-      n_oov += 1
-      continue
-    pred = predictions[idx]
-    if quick_mode:
-      word_loss = _calc_word_loss_quick(expected, pred, V_C, maxlen)
-    else:
-      word_loss = _calc_word_loss(expected, pred, V_C, V_W, maxlen)
-    tot_loss += word_loss
-    n_tested += 1
-
-  return (0.0 if n_tested == 0 else np.exp(tot_loss / n_tested)), n_oov, n_tested
-
-
-def _sample_word_predictions(w2c, W_np1e, maxlen, V_C):
-  EOW_idx     = V_C.get_index(EOW)
-  n_ctx       = len(W_np1e)
-  predictions = np.zeros(shape=(n_ctx, maxlen, V_C.size), dtype=np.float32)
-  for i in range(0, n_ctx):
-    w_np1e  = W_np1e[i]
-    w_np1e  = np.reshape(w_np1e, (1,) + w_np1e.shape)
-    w_np1c  = np.zeros(shape=(1, maxlen, V_C.size), dtype=np.bool)
-    fill_word_one_hots(w_np1c[0], SOW, V_C, maxlen, pad=EOW)
-    for j in range(0, maxlen):
-      step = w2c.predict({'w_np1e': w_np1e, 'w_np1c': w_np1c}, batch_size=1)[0]
-      np.copyto(predictions[i, j], step[j])
-      ch_idx = np.argmax(step[j])
-      ch = V_C.get_token(ch_idx)
-      if ch == EOW:
-        # don't waste computation time because we stop word probability
-        # calculation the when EOW character is encountered
-        for k in range(j + 1, maxlen):
-          np.copyto(predictions[i, k], step[k])
-        break
-      elif j < maxlen - 1:
-        # use predicted char as a sample for next character prediction
-        w_np1c[0, j + 1, EOW_idx]  = 0
-        w_np1c[0, j + 1, ch_idx]   = 1
-  return predictions
-
-
-def _test_model(params, lm, w2c, samples, V_W, V_C, quick_mode=False):
-  maxlen        = params.maxlen
-  total_samples = 0
-  total_pp      = 0.0
-  total_tested  = 0
-  total_oov     = 0
-  for expectations, X in samples:
-    lm.reset_states()
-    W_np1e          = lm.predict(X, batch_size=1)
-    predictions     = _sample_word_predictions(w2c, W_np1e, maxlen, V_C)
-    pp, oov, tested = _calc_perplexity(V_W, V_C, expectations, predictions, params.maxlen, quick_mode)
-    if np.isnan(pp):
-      # for some reason, S_e word predictions are randomly NaN => PP goes NaN
-      # as a quick fix, just drop NaN sentences from the validation set for now
-      if not quick_mode:
-        print 'WARN failed to predict sentence PP: ' + ' '.join([w2str(e) for e in expectations])
-      continue
-    total_pp += pp
-    total_tested += tested
-    total_oov += oov
-    total_samples += 1
-
-  pp_avg   = sys.float_info.max if total_samples == 0 else total_pp / total_samples
-  oov_rate = 0. if total_samples == 0 else 1.0 * total_oov / (total_oov + total_tested)
-  return pp_avg, oov_rate
-
-
-def _calc_pp_alt(w2c, expected, w_np1e, maxlen, V_W, V_C):
-  if is_oov(expected, maxlen):
-    return 0., 1, 0
-
-  w_np1e  = np.reshape(w_np1e, (1,) + w_np1e.shape)
-  P = np.zeros(shape=(V_W.size,), dtype=np.float64)
   for w in V_W.tokens:
-    w_np1c  = np.zeros(shape=(1, maxlen, V_C.size), dtype=np.bool)
-    fill_word_one_hots(w_np1c[0], SOW + w, V_C, maxlen, pad=EOW)
-    pred = w2c.predict({'w_np1e': w_np1e, 'w_np1c': w_np1c}, batch_size=1)[0]
-    tok = w2tok(w, maxlen, pad=EOW)
-    P[V_W.get_index(w)] = np.prod([pred[i, V_C.get_index(ch)] for i, ch in enumerate(tok)])
-
-  loss = -np.log(P[V_W.get_index(expected)] / np.sum(P))
-  #print expected, ' loss: ', loss
-  return loss, 0, 1
+    p_w = _calc_word_probability(w, p_chars(w), maxlen, V_C)
+    if w == expected:
+      p_expected = p_w
+    p_words.append(p_w)
+  assert p_expected is not None
+  #print 'p_expected', p_expected
+  return -np.log(p_expected / np.sum(p_words))
 
 
-def _test_w2c_model(params, w2c, samples, V_W, V_C):
-  maxlen        = params.maxlen
-  total_samples = 0
-  total_pp      = 0.0
-  total_tested  = 0
-  total_oov     = 0
-  prev_is_EOS   = True
-  for expected, w_np1e in samples:
-    if prev_is_EOS:
-      prev_is_EOS = False
+def _calc_quick_loss(P_chars, expectations, V_C, maxlen):
+  l, o, t = 0., 0, 0
+  for idx, sample in enumerate(zip(P_chars, expectations)):
+    p_chars, expected = sample
+    if is_oov(expected, maxlen):
+      o += 1
       continue
-    prev_is_EOS = expected == EOS
-
-    pp, oov, tested = _calc_pp_alt(w2c, expected, w_np1e, maxlen, V_W, V_C)
-    if np.isnan(pp):
-      print 'WARN failed to predict word PP: ' + expected
+    word_loss = -np.log(_calc_word_probability(expected, p_chars, maxlen, V_C))
+    if np.isnan(word_loss):
+      print 'WARN: unable to get loss of word: ' + expected
+      o += 1
       continue
-    total_pp += pp
-    total_tested += tested
-    total_oov += oov
-    total_samples += 1
-
-  pp_avg   = sys.float_info.max if total_samples == 0 else total_pp / total_samples
-  oov_rate = 0. if total_samples == 0 else 1.0 * total_oov / (total_oov + total_tested)
-  return pp_avg, oov_rate
+    l += word_loss
+    t += 1
+  #print 'loss', l
+  return l, o, t
 
 
-def make_c2w2c_test_function(lm, w2c, params, dataset, V_C, V_W):
-  sents   = dataset.sentences
-  maxlen  = params.maxlen
-  samples = []
-  for s in sents:
-    n_ctx = len(s) - 1
-    X = np.zeros(shape=(n_ctx, maxlen, V_C.size), dtype=np.bool)
-    M = np.ones(shape=(n_ctx, 1), dtype=np.bool)
-    for i in range(0, n_ctx):
-      fill_word_one_hots(X[i], s[i], V_C, maxlen)
-    samples.append((s[1:], {'w_nc': X, 'w_nmask': M}))
-
-  def test_model(limit=None):
-    if limit is None:
-      return _test_model(params, lm, w2c, samples, V_W, V_C, quick_mode=True)
-    else:
-      return _test_model(params, lm, w2c, samples[0: min(len(samples), limit)], V_W, V_C, quick_mode=True)
-
-  return test_model
+def _calc_loss(w2c, W_np1e, expectations, V_C, V_W, maxlen):
+  l, o, t = 0., 0, 0
+  for idx, sample in enumerate(zip(W_np1e, expectations)):
+    w_np1e, expected = sample
+    if is_oov(expected, maxlen):
+      o += 1
+      continue
+    # ATTENTION: this is **very expensive** operation...
+    word_loss = _calc_word_loss_over_vocabulary(w2c, w_np1e, expected, V_C, V_W, maxlen)
+    if np.isnan(word_loss):
+      print 'WARN: unable to get loss of word: ' + expected
+      o += 1
+      continue
+    l += word_loss
+    t += 1
+  #print 'loss', l
+  return l, o, t
 
 
-def make_w2c_test_function(w2c, params, samples, V_C, V_W):
-  samples = zip(samples[1], samples[0])
+def _calc_normalized_pp(lm, w2c, n_samples, n_batch, generator, V_C, V_W, maxlen):
+  l, o, t, n = 0., 0, 0, 0
+  lm.reset_states()
+  while n < n_samples:
+    X, expectations   = generator.next()
+    W_np1e            = lm.predict(X, batch_size=n_batch)
+    loss, oov, tested = _calc_loss(w2c, W_np1e, expectations, V_C, V_W, maxlen)
+    l += loss
+    o += oov
+    t += tested
+    n += len(expectations)
 
-  def test_model(limit=None):
-    if limit is None:
-      return _test_w2c_model(params, w2c, samples[0: 10], V_W, V_C)
-    else:
-      return _test_w2c_model(params, w2c, samples[0: min(len(samples), limit)], V_W, V_C)
+  assert n == n_samples
+  pp    = sys.float_info.max if t == 0 else np.exp(l / t)
+  oovr  = 0 if t + o == 0 else o / float(t + o)
+  return pp, oovr
 
-  return test_model
 
+def _calc_quick_pp(c2w2c, n_samples, n_batch, generator, V_C, maxlen):
+  l, o, t, n = 0., 0, 0, 0
+  c2w2c.reset_states()
+  while n < n_samples:
+    X, expectations   = generator.next()
+    predictions       = c2w2c.predict(X, batch_size=n_batch)
+    loss, oov, tested = _calc_quick_loss(predictions, expectations, V_C, maxlen)
+    l += loss
+    o += oov
+    t += tested
+    n += len(expectations)
+
+  assert n == n_samples
+  pp    = sys.float_info.max if t == 0 else np.exp(l / t)
+  oovr  = 0 if t + o == 0 else o / float(t + o)
+  return pp, oovr
+
+
+def _make_full_test_fn(lm, w2c, params, dataset, V_C, V_W):
+  def to_test_samples(samples):
+    X, _, _ = _to_c2w2c_samples(params, V_C)(samples)
+    X       = {'w_nc': X['w_nc'], 'w_nmask': X['w_nmask']}
+    W_np1   = list([s[1] for s in samples])
+    return X, W_np1
+
+  n_batch              = params.n_batch
+  n_samples, generator = _prepare_data(n_batch, dataset, to_test_samples, shuffle=False)
+  return (lamda : _calc_normalized_pp(lm, w2c, n_samples, n_batch, generator, V_C, V_W, params.maxlen))
+
+
+def _make_quick_test_fn(c2w2c, params, dataset, V_C):
+  def to_test_samples(samples):
+    X, _, _  = _to_c2w2c_samples(params, V_C)(samples)
+    expected = list([s[1] for s in samples])
+    return X, expected
+
+  n_batch              = params.n_batch
+  n_samples, generator = _prepare_data(n_batch, dataset, to_test_samples, shuffle=False)
+  return (lamda : _calc_quick_pp(c2w2c, n_samples, n_batch, generator, V_C, params.maxlen))
+
+
+def make_c2w2c_test_function(c2w2c, lm, w2c, params, dataset, V_C, V_W):
+  QUICK_MODE = True
+  if QUICK_MODE:
+    return _make_quick_test_fn(c2w2c, params, dataset, V_C)
+  else:
+    return _make_full_test_fn(lm, w2c, params, dataset, V_C, V_W)
