@@ -9,10 +9,10 @@ import model_params
 from c2w2c import C2W2C, build_c2w2c_validation_models
 from c2w2w import C2W2W
 from models import W2C
+from datagen import prepare_c2w2c_training_data, prepare_c2w2w_training_data, prepare_w2c_training_data
 from dataset import load_dataset, make_char_vocabulary
-from training import prepare_c2w2c_training_data, prepare_c2w2w_training_data, preprare_w2c_training_data
 from util import info, Timer
-from validation import make_c2w2c_test_function, make_c2w2w_test_function, make_w2c_test_function
+from validation import make_c2w2c_test_function, make_c2w2w_test_function
 
 sys.setrecursionlimit(40000)
 
@@ -46,7 +46,7 @@ def compile_model(model, returns_chars=True):
                 metrics=['accuracy'])
 
 
-def load_weights(model, filename):
+def try_load_weights(model, filename):
   if filename:
     if path.isfile(filename):
       print 'Loading existing weights from "%s"...' % filename
@@ -55,8 +55,40 @@ def load_weights(model, filename):
       print 'Initial weight file not found: %s' % filename
 
 
+def try_save_weights(model, filename):
+  if filename:
+    model.save_weights(filename, overwrite=True)
+    print 'Weights saved to: %s' % filename
+
+
 def param_count(m):
   return sum([w.size for w in m.get_weights()])
+
+
+def delta_str(cur, prev, fmt='(%s%f)'):
+  return fmt % ('-' if cur < prev else '+', abs(prev - cur)) if prev is not None else ''
+
+
+def c2w2c_from_c2w2w_weights(c2w2w_weights_file):
+  def weight_list(m):
+    return list([w.tolist() for w in m.get_weights()])
+
+  c2w2c, (c2w, lm, w2c) = C2W2C(params.n_batch, params, V_C)
+  c2w2w                 = C2W2W(params.n_batch, params, V_C, V_W)
+  compile_model(c2w2c, returns_chars=True)
+  compile_model(c2w2w, returns_chars=False)
+  try_load_weights(params.init_weight_file)
+  try_load_weights(c2w2w_weights_file)
+
+  prev_w    = weight_list(c2w2c)
+  prev_w2cw = weight_list(w2c)
+  assert prev_w == weight_list(c2w2c)
+  for i in range(0, len(c2w2w.layers) - 2):
+    print c2w2c.layers[i]
+    c2w2c.layers[i].set_weights(c2w2w.layers[i].get_weights())
+  assert prev_w != weight_list(c2w2c)
+  assert prev_w2cw != weight_list(w2c)
+  return c2w2c, (c2w, lm, w2c)
 
 
 def prepare_env(mode):
@@ -67,14 +99,16 @@ def prepare_env(mode):
     compile_model(trainable_model, returns_chars=True)
     compile_model(v_c2wp1, returns_chars=False)
     compile_model(v_w2c, returns_chars=True)
-    load_weights(trainable_model, params.init_weight_file)
+    try_load_weights(trainable_model, params.init_weight_file)
 
-    #print trainable_model.layers
     def update_weights():
       v_c2wp1.set_weights(c2w.get_weights() + lm.get_weights())
       v_w2c.set_weights(w2c.get_weights())
 
-    test_model        = make_c2w2c_test_function(v_c2wp1, v_w2c, params, test_dataset, V_C, V_W)
+    def save_weights():
+      try_save_weights(trainable_model, params.save_weight_file)
+
+    test_model        = make_c2w2c_test_function(trainable_model, v_c2wp1, v_w2c, params, test_dataset, V_C, V_W)
     training_data     = prepare_c2w2c_training_data(params, training_dataset, V_C)
 
     print 'Model parameters:'
@@ -84,65 +118,48 @@ def prepare_env(mode):
     print '       %s' % ('-' * 10)
     print '       %10s' % str(sum([param_count(m) for m in [c2w, lm, w2c]]))
 
-  elif mode == 'w2c_train':
-    c2w2w_datagen     = C2W2W(1, params, V_C, V_W)
-    v_c2wp1, _        = build_c2w2c_validation_models(params, V_C)
-    trainable_model   = W2C(params.n_batch, params.maxlen, params.d_W, params.d_D, V_C, apply_softmax=True)
-    compile_model(c2w2w_datagen, returns_chars=False)
-    compile_model(trainable_model, returns_chars=True)
-    compile_model(v_c2wp1, returns_chars=False)
-    load_weights(c2w2w_datagen, params.init_weight_file)
-    v_c2wp1.set_weights([w for l in c2w2w_datagen.layers[0:-2] for w in l.get_weights()])
+  elif mode == 'c2w2w':
+    trainable_model   = C2W2W(params.n_batch, params, V_C, V_W)
+    compile_model(trainable_model, returns_chars=False)
+    compile_model(validation_model, returns_chars=False)
+    try_load_weights(trainable_model, params.init_weight_file)
 
     def update_weights():
       pass  # using same model for test as used in training
 
-    training_data, data = preprare_w2c_training_data(params, training_dataset, V_C, V_W, v_c2wp1)
-    test_model          = make_w2c_test_function(trainable_model, params, data, V_C, V_W)
-
-  elif mode == 'combine':
-    def weight_list(m):
-      return list([w.tolist() for w in m.get_weights()])
-
-    c2w2c, (c2w, lm, w2c), _  = C2W2C(1, params, V_C)
-    c2w2w                     = C2W2W(1, params, V_C, V_W)
-    w2c_src                   = W2C(params.n_batch, params.maxlen, params.d_W, params.d_D, V_C, apply_softmax=True)
-    compile_model(c2w2c, returns_chars=True)
-    compile_model(c2w2w, returns_chars=False)
-    prev_w = weight_list(c2w2c)
-    assert prev_w == weight_list(c2w2c)
-    # load c2w weights
-    load_weights(c2w2w, params.init_weight_file + '.c2w2w')
-    for i in range(0, len(c2w2w.layers) - 2):
-      print c2w2c.layers[i]
-      c2w2c.layers[i].set_weights(c2w2w.layers[i].get_weights())
-    assert prev_w != weight_list(c2w2c)
-
-    # load w2c weights
-    prev_w = weight_list(c2w2c)
-    load_weights(w2c_src, params.init_weight_file + '.w2c')
-    w2c.set_weights(w2c_src.get_weights())
-    assert prev_w != weight_list(c2w2c)
-
-    c2w2c.save_weights(params.save_weight_file, overwrite=True)
-    print 'All ok'
-    sys.exit(0)
-
-  elif mode == 'c2w2w':
-    trainable_model   = C2W2W(params.n_batch, params, V_C, V_W)
-    validation_model  = C2W2W(params.n_batch, params, V_C, V_W)
-    compile_model(trainable_model, returns_chars=False)
-    compile_model(validation_model, returns_chars=False)
-    load_weights(trainable_model, params.init_weight_file)
-
-    def update_weights():
-      validation_model.set_weights(trainable_model.get_weights())
+    def save_weights():
+      try_save_weights(trainable_model, params.save_weight_file)
 
     test_model        = make_c2w2w_test_function(validation_model, params, test_dataset, V_C, V_W)
     training_data     = prepare_c2w2w_training_data(params, training_dataset, V_C, V_W)
 
     print 'Model parameters:'
     print ' - Total:%10s' % str(param_count(trainable_model))
+
+  elif mode == 'w2c':
+    if not params.c2w2w_weights:
+      print 'C2W2W weights are mandatory when training W2C model'
+      sys.exit(1)
+
+    # build models: w2c for training, validation models for data generation and quick PP checks
+    trainable_model       = W2C(params.n_batch, params.maxlen, params.d_W, params.d_D, V_C, apply_softmax=True)
+    c2w2c, (c2w, lm, w2c) = c2w2c_from_c2w2w_weights(params.c2w2w_weights)
+    c2wp1, _              = build_c2w2c_validation_models(params, V_C)
+    compile_model(trainable_model, returns_chars=True)
+    compile_model(c2wp1, returns_chars=False)
+    c2wp1.set_weights(c2w.get_weights() + lm.get_weights())
+    trainable_model.set_weights(w2c.get_weights())
+
+    def update_weights():
+      # c2w2c needs updated weights if validating with "full" mode
+      w2c.set_weights(trainable_model.get_weights())
+
+    def save_weights():
+      update_weights()
+      try_save_weights(c2w2c, params.save_weight_file)
+
+    training_data = prepare_w2c_training_data(c2wp1, params, training_dataset, V_C)
+    test_model    = make_c2w2c_test_function(c2w2c, c2wp1, trainable_model, params, test_dataset, V_C, V_W)
 
   else:
     print 'Invalid mode: %s' % mode
@@ -152,22 +169,17 @@ def prepare_env(mode):
     update_weights()
     return test_model(limit)
 
-  return trainable_model, test_fn, training_data
+  return trainable_model, test_fn, save_weights, training_data
 
 
-MODE = params.mode
-model, run_tests, t_data = prepare_env(MODE)
-
-
-def delta_str(cur, prev, fmt='(%s%f)'):
-  return fmt % ('-' if cur < prev else '+', abs(prev - cur)) if prev is not None else ''
-
-fit_t   = Timer()
-test_t  = Timer()
+fit_t     = Timer()
+test_t    = Timer()
 
 prev_pp   = None
 prev_loss = None
 prev_acc  = None
+
+model, run_tests, persist_weights, t_data = prepare_env(params.mode)
 
 
 def run_model_tests(prev_pp):
@@ -229,13 +241,7 @@ try:
       prev_acc  = acc
       prev_loss = loss
       prev_pp   = pp
-      if params.save_weight_file:
-        filename = params.save_weight_file  #'%s.%d' % (params.save_weight_file, (e % 10) + 1)
-        model.save_weights(filename, overwrite=True)
-        info('Model weights saved to %s' % filename)
-    else:
-      print 'Perplexity didn\'t improve. Resetting weights...'
-      model.set_weights(best_weights)
+      persist_weights()
 
   print 'Training complete'
 except KeyboardInterrupt:

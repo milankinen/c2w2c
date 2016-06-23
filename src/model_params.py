@@ -26,6 +26,7 @@ class ModelParams:
     self.test_only        = args.test_only
     self.mode             = args.mode
     self.mini_iteration   = args.mini_iteration
+    self.c2w2w_weights    = args.c2w2w_weights
 
   def print_params(self):
     info('Model parameters:')
@@ -80,6 +81,7 @@ def from_cli_args():
   parser.add_argument('--test-only', '-T', action='store_true', help='Run only PP test and (optional) text generation')
   parser.add_argument('--mode', metavar='c2w2c|word|w2c_train', help='Select which mode to run')
   parser.add_argument('--mini-iteration', type=int, metavar='n', help='Run mini PP tests after mini-iterations of N batches')
+  parser.add_argument('--c2w2w-weights', metavar='filename', help='C2W2W weights when fine-tuning W2C model')
   parser.set_defaults(context_size=10,
                       batch_size=50,
                       learning_rate=0.001,
