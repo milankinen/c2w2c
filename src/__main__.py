@@ -100,6 +100,34 @@ def prepare_env(mode):
     training_data, data = preprare_w2c_training_data(params, training_dataset, V_C, V_W, v_c2wp1)
     test_model          = make_w2c_test_function(trainable_model, params, data, V_C, V_W)
 
+  elif mode == 'combine':
+    def weight_list(m):
+      return list([w.tolist() for w in m.get_weights()])
+
+    c2w2c, (c2w, lm, w2c), _  = C2W2C(1, params, V_C)
+    c2w2w                     = C2W2W(1, params, V_C, V_W)
+    w2c_src                   = W2C(params.n_batch, params.maxlen, params.d_W, params.d_D, V_C, apply_softmax=True)
+    compile_model(c2w2c, returns_chars=True)
+    compile_model(c2w2w, returns_chars=False)
+    prev_w = weight_list(c2w2c)
+    assert prev_w == weight_list(c2w2c)
+    # load c2w weights
+    load_weights(c2w2w, params.init_weight_file + '.c2w2w')
+    for i in range(0, len(c2w2w.layers) - 2):
+      print c2w2c.layers[i]
+      c2w2c.layers[i].set_weights(c2w2w.layers[i].get_weights())
+    assert prev_w != weight_list(c2w2c)
+
+    # load w2c weights
+    prev_w = weight_list(c2w2c)
+    load_weights(w2c_src, params.init_weight_file + '.w2c')
+    w2c.set_weights(w2c_src.get_weights())
+    assert prev_w != weight_list(c2w2c)
+
+    c2w2c.save_weights(params.save_weight_file, overwrite=True)
+    print 'All ok'
+    sys.exit(0)
+
   elif mode == 'c2w2w':
     trainable_model   = C2W2W(params.n_batch, params, V_C, V_W)
     validation_model  = C2W2W(1, params, V_C, V_W)
