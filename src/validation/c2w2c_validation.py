@@ -127,8 +127,12 @@ def _make_quick_test_fn(c2w2c, params, dataset, V_C):
 
 
 def make_c2w2c_test_function(c2w2c, lm, w2c, params, dataset, V_C, V_W):
-  QUICK_MODE = True
-  if QUICK_MODE:
-    return _make_quick_test_fn(c2w2c, params, dataset, V_C)
-  else:
-    return _make_full_test_fn(lm, w2c, params, dataset, V_C, V_W)
+  mode = params.validation_mode
+  while 1:
+    if mode == 'quick':
+      return _make_quick_test_fn(c2w2c, params, dataset, V_C)
+    elif mode == 'full':
+      return _make_full_test_fn(lm, w2c, params, dataset, V_C, V_W)
+    else:
+      print 'Invalid validation mode "%s". Using "quick" by default...' % mode
+      mode = 'quick'

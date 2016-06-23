@@ -27,10 +27,12 @@ class ModelParams:
     self.mode             = args.mode
     self.mini_iteration   = args.mini_iteration
     self.c2w2w_weights    = args.c2w2w_weights
+    self.validation_mode  = args.validation_mode
 
   def print_params(self):
     info('Model parameters:')
     info(' - Mode:             %s' % self.mode.upper())
+    info(' - Validation mode:  %s' % self.validation_mode)
     info(' - Training dataset: %s' % self.training_dataset)
     info(' - Test dataset:     %s' % self.test_dataset)
     if self.limits:
@@ -82,6 +84,7 @@ def from_cli_args():
   parser.add_argument('--mode', metavar='c2w2c|word|w2c_train', help='Select which mode to run')
   parser.add_argument('--mini-iteration', type=int, metavar='n', help='Run mini PP tests after mini-iterations of N batches')
   parser.add_argument('--c2w2w-weights', metavar='filename', help='C2W2W weights when fine-tuning W2C model')
+  parser.add_argument('--validation-mode', metavar='full|quick', help='Define which validation mode to use')
   parser.set_defaults(context_size=10,
                       batch_size=50,
                       learning_rate=0.001,
@@ -89,6 +92,7 @@ def from_cli_args():
                       max_word_length=25,
                       test_only=False,
                       mode='c2w2c',
+                      validation_mode='quick',
                       d_C=50,
                       d_W=300,
                       d_Wi=150,
