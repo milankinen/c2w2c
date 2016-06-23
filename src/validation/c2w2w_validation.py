@@ -2,7 +2,7 @@ import numpy as np
 import sys
 
 from ..constants import UNK
-from ..datagen import _prepare_data, _to_c2w2w_samples
+from ..datagen import prepare_data, to_c2w2w_samples
 
 
 def _calc_loss(V_W, predictions, expectations):
@@ -19,8 +19,6 @@ def _calc_loss(V_W, predictions, expectations):
     l += word_loss
     o += 1 if is_oov else 0
     t += 0 if is_oov else 1
-
-  #print 'loss', l
   return l, o, t
 
 
@@ -44,11 +42,11 @@ def _calc_pp(c2w2w, n_samples, n_batch, generator, V_W):
 
 def make_c2w2w_test_function(c2w2w, params, dataset, V_C, V_W):
   def to_test_samples(samples):
-    X, _, _ = _to_c2w2w_samples(params, V_C, V_W)(samples)
+    X, _, _ = to_c2w2w_samples(params, V_C, V_W)(samples)
     W_np1   = list([s[1] for s in samples])
     return X, W_np1
 
   n_batch              = params.n_batch
-  n_samples, generator = _prepare_data(n_batch, dataset, to_test_samples, shuffle=False)
-  return (lamda : _calc_pp(c2w2w, n_samples, n_batch, generator, V_W))
+  n_samples, generator = prepare_data(n_batch, dataset, to_test_samples, shuffle=False)
+  return lambda: _calc_pp(c2w2w, n_samples, n_batch, generator, V_W)
 

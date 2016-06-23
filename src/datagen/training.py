@@ -55,7 +55,7 @@ def _shuffle_batches(batches):
   return batches
 
 
-def _prepare_data(n_batch, dataset, to_samples, shuffle):
+def prepare_data(n_batch, dataset, to_samples, shuffle):
   sents     = dataset.sentences[:]
   n_samples = (dataset.n_words // n_batch) * n_batch
 
@@ -73,7 +73,7 @@ def _prepare_data(n_batch, dataset, to_samples, shuffle):
   return n_samples, make_generator()
 
 
-def _to_c2w2c_samples(params, V_C):
+def to_c2w2c_samples(params, V_C):
   def to_samples(samples):
     n_batch = len(samples)
     maxlen  = params.maxlen
@@ -93,7 +93,7 @@ def _to_c2w2c_samples(params, V_C):
   return to_samples
 
 
-def _to_c2w2w_samples(params, V_C, V_W):
+def to_c2w2w_samples(params, V_C, V_W):
   def to_samples(samples):
     n_batch = len(samples)
     maxlen  = params.maxlen
@@ -113,11 +113,11 @@ def _to_c2w2w_samples(params, V_C, V_W):
 
 
 def prepare_c2w2c_training_data(params, dataset, V_C, shuffle=True):
-  return _prepare_data(params.n_batch, dataset, _to_c2w2c_samples(params, V_C), shuffle)
+  return prepare_data(params.n_batch, dataset, to_c2w2c_samples(params, V_C), shuffle)
 
 
 def prepare_c2w2w_training_data(params, dataset, V_C, V_W, shuffle=True):
-  return _prepare_data(params.n_batch, dataset, _to_c2w2w_samples(params, V_C, V_W), shuffle)
+  return prepare_data(params.n_batch, dataset, to_c2w2w_samples(params, V_C, V_W), shuffle)
 
 
 def prepare_w2c_training_data(c2wnp1, params, dataset, V_C):
@@ -127,11 +127,11 @@ def prepare_w2c_training_data(c2wnp1, params, dataset, V_C):
       if cache_key in cache:
         return cache[cache_key]
       # samples not found from cache, must generate embedding first
-      X, y, W = _to_c2w2c_samples(params, V_C)(samples)
-      W_np1e  = c2wnp1.predict({'w_nc': X['w_nc'], 'w_nmask': X['w_nmask']}, batch_size=n_batch)
+      X, y, W = to_c2w2c_samples(params, V_C)(samples)
+      W_np1e  = c2wnp1.predict({'w_nc': X['w_nc'], 'w_nmask': X['w_nmask']}, batch_size=params.n_batch)
       samples = ({'w_np1e': W_np1e, 'w_np1c': X['w_np1c']}, y, W)
       cache[cache_key] = samples
       return samples
     return to_samples
 
-  return _prepare_data(params.n_batch, dataset, _to_cached_w2c_samples({}), shuffle=False)
+  return prepare_data(params.n_batch, dataset, _to_cached_w2c_samples({}), shuffle=False)

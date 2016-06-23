@@ -2,9 +2,9 @@ import numpy as np
 import sys
 
 from ..common import w2tok, is_oov
-from ..constants import SOW, EOW
+from ..constants import EOW
+from ..datagen import prepare_data, to_c2w2c_samples
 from ..dataset.helpers import fill_word_one_hots
-from ..datagen import _prepare_data, _to_c2w2c_samples
 
 
 def _calc_word_probability(word, p_chars, maxlen, V_C):
@@ -29,7 +29,6 @@ def _calc_word_loss_over_vocabulary(w2c, w_np1e, expected, V_C, V_W, maxlen):
       p_expected = p_w
     p_words.append(p_w)
   assert p_expected is not None
-  #print 'p_expected', p_expected
   return -np.log(p_expected / np.sum(p_words))
 
 
@@ -47,7 +46,6 @@ def _calc_quick_loss(P_chars, expectations, V_C, maxlen):
       continue
     l += word_loss
     t += 1
-  #print 'loss', l
   return l, o, t
 
 
@@ -66,7 +64,6 @@ def _calc_loss(w2c, W_np1e, expectations, V_C, V_W, maxlen):
       continue
     l += word_loss
     t += 1
-  #print 'loss', l
   return l, o, t
 
 
@@ -108,25 +105,25 @@ def _calc_quick_pp(c2w2c, n_samples, n_batch, generator, V_C, maxlen):
 
 def _make_full_test_fn(lm, w2c, params, dataset, V_C, V_W):
   def to_test_samples(samples):
-    X, _, _ = _to_c2w2c_samples(params, V_C)(samples)
+    X, _, _ = to_c2w2c_samples(params, V_C)(samples)
     X       = {'w_nc': X['w_nc'], 'w_nmask': X['w_nmask']}
     W_np1   = list([s[1] for s in samples])
     return X, W_np1
 
   n_batch              = params.n_batch
-  n_samples, generator = _prepare_data(n_batch, dataset, to_test_samples, shuffle=False)
-  return (lamda : _calc_normalized_pp(lm, w2c, n_samples, n_batch, generator, V_C, V_W, params.maxlen))
+  n_samples, generator = prepare_data(n_batch, dataset, to_test_samples, shuffle=False)
+  return lambda: _calc_normalized_pp(lm, w2c, n_samples, n_batch, generator, V_C, V_W, params.maxlen)
 
 
 def _make_quick_test_fn(c2w2c, params, dataset, V_C):
   def to_test_samples(samples):
-    X, _, _  = _to_c2w2c_samples(params, V_C)(samples)
+    X, _, _  = to_c2w2c_samples(params, V_C)(samples)
     expected = list([s[1] for s in samples])
     return X, expected
 
   n_batch              = params.n_batch
-  n_samples, generator = _prepare_data(n_batch, dataset, to_test_samples, shuffle=False)
-  return (lamda : _calc_quick_pp(c2w2c, n_samples, n_batch, generator, V_C, params.maxlen))
+  n_samples, generator = prepare_data(n_batch, dataset, to_test_samples, shuffle=False)
+  return lambda: _calc_quick_pp(c2w2c, n_samples, n_batch, generator, V_C, params.maxlen)
 
 
 def make_c2w2c_test_function(c2w2c, lm, w2c, params, dataset, V_C, V_W):

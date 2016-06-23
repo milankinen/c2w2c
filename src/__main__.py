@@ -73,21 +73,18 @@ def c2w2c_from_c2w2w_weights(c2w2w_weights_file):
   def weight_list(m):
     return list([w.tolist() for w in m.get_weights()])
 
-  c2w2c, (c2w, lm, w2c) = C2W2C(params.n_batch, params, V_C)
-  c2w2w                 = C2W2W(params.n_batch, params, V_C, V_W)
+  c2w2c, (c2w, lm, w2c), _ = C2W2C(params.n_batch, params, V_C)
+  c2w2w                    = C2W2W(params.n_batch, params, V_C, V_W)
   compile_model(c2w2c, returns_chars=True)
   compile_model(c2w2w, returns_chars=False)
-  try_load_weights(params.init_weight_file)
-  try_load_weights(c2w2w_weights_file)
+  try_load_weights(c2w2w, c2w2w_weights_file)
+  try_load_weights(c2w2c, params.init_weight_file)
 
-  prev_w    = weight_list(c2w2c)
-  prev_w2cw = weight_list(w2c)
+  prev_w = weight_list(c2w2c)
   assert prev_w == weight_list(c2w2c)
   for i in range(0, len(c2w2w.layers) - 2):
-    print c2w2c.layers[i]
     c2w2c.layers[i].set_weights(c2w2w.layers[i].get_weights())
   assert prev_w != weight_list(c2w2c)
-  assert prev_w2cw != weight_list(w2c)
   return c2w2c, (c2w, lm, w2c)
 
 
@@ -121,7 +118,6 @@ def prepare_env(mode):
   elif mode == 'c2w2w':
     trainable_model   = C2W2W(params.n_batch, params, V_C, V_W)
     compile_model(trainable_model, returns_chars=False)
-    compile_model(validation_model, returns_chars=False)
     try_load_weights(trainable_model, params.init_weight_file)
 
     def update_weights():
@@ -130,7 +126,7 @@ def prepare_env(mode):
     def save_weights():
       try_save_weights(trainable_model, params.save_weight_file)
 
-    test_model        = make_c2w2w_test_function(validation_model, params, test_dataset, V_C, V_W)
+    test_model        = make_c2w2w_test_function(trainable_model, params, test_dataset, V_C, V_W)
     training_data     = prepare_c2w2w_training_data(params, training_dataset, V_C, V_W)
 
     print 'Model parameters:'
@@ -165,9 +161,9 @@ def prepare_env(mode):
     print 'Invalid mode: %s' % mode
     sys.exit(1)
 
-  def test_fn(limit=None):
+  def test_fn():
     update_weights()
-    return test_model(limit)
+    return test_model()
 
   return trainable_model, test_fn, save_weights, training_data
 
