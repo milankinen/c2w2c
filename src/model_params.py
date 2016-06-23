@@ -25,7 +25,6 @@ class ModelParams:
     self.gen_n_samples    = args.gen_text
     self.test_only        = args.test_only
     self.mode             = args.mode
-    self.mini_iteration   = args.mini_iteration
     self.c2w2w_weights    = args.c2w2w_weights
     self.validation_mode  = args.validation_mode
 
@@ -40,7 +39,6 @@ class ModelParams:
     info(' - Context size:     %d' % self.n_context)
     info(' - Batch size:       %d' % self.n_batch)
     info(' - Number of epoch:  %d' % self.n_epoch)
-    info(' - Mini-iteration:   %s' % 'no' if self.mini_iteration is None else str(self.mini_iteration))
     info(' - d_C:              %d' % self.d_C)
     info(' - d_W:              %d' % self.d_W)
     info(' - d_Wi:             %d' % self.d_Wi)
@@ -82,9 +80,8 @@ def from_cli_args():
   parser.add_argument('--gen-text', type=int, metavar='n', help='Generate N sample sentences after each epoch')
   parser.add_argument('--test-only', '-T', action='store_true', help='Run only PP test and (optional) text generation')
   parser.add_argument('--mode', metavar='c2w2c|word|w2c_train', help='Select which mode to run')
-  parser.add_argument('--mini-iteration', type=int, metavar='n', help='Run mini PP tests after mini-iterations of N batches')
-  parser.add_argument('--c2w2w-weights', metavar='filename', help='C2W2W weights when fine-tuning W2C model')
   parser.add_argument('--validation-mode', metavar='full|quick', help='Define which validation mode to use')
+  parser.add_argument('--c2w2w-weights', metavar='filename', help='C2W2W weights when fine-tuning W2C model')
   parser.set_defaults(context_size=10,
                       batch_size=50,
                       learning_rate=0.001,
@@ -94,7 +91,7 @@ def from_cli_args():
                       mode='c2w2c',
                       validation_mode='quick',
                       d_C=50,
-                      d_W=300,
+                      d_W=50,
                       d_Wi=150,
                       d_L=1024,
                       d_D=512)
