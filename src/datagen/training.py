@@ -6,55 +6,6 @@ from ..constants import SOW, EOW, UNK
 from ..dataset.helpers import fill_word_one_hots, fill_weights, fill_context_one_hots
 
 
-def _groupby(col, fn):
-  res = {}
-  for v in col:
-    k = fn(v)
-    if not (k in res):
-      res[k] = [v]
-    else:
-      res[k].append(v)
-  return res
-
-
-def _arrange_to_batches(sentences, n_batch):
-  """
-    This ugly piece of code arranges the given sentences into batches of n_batch
-    so that sentences with same length and nearest length are grouped into same
-    batches.
-
-    The return value is list of batch tuples: (sentence_len_in_batch, [batch_sentence])
-  """
-  by_len    = _groupby(sentences, lambda s: len(s))
-  by_len    = sorted(list((l, by_len[l]) for l in by_len), cmp=lambda a, b: cmp(a[0], b[0]), reverse=True)
-  batches   = []
-  b = []
-  ml = 0
-  for l, sents in by_len:
-    if l > ml:
-      ml = l
-    for s in sents:
-      b.append(s)
-      if len(b) == n_batch:
-        batches.append((ml, b))
-        ml = 0
-        b = []
-  if 0 < len(b) < n_batch:
-    b = b + [b[-1]] * (n_batch - len(b))
-    batches.append((ml, b))
-  return batches
-
-
-def _shuffle_batches(batches):
-  batches = batches[:]
-  for i in range(0, len(batches)):
-    b = (batches[i][0], batches[i][1])
-    random.shuffle(b[1])
-    batches[i] = b
-  random.shuffle(batches)
-  return batches
-
-
 def prepare_data(n_batch, dataset, to_samples, shuffle):
   sents     = dataset.sentences[:]
   n_samples = (dataset.n_words // n_batch) * n_batch
