@@ -11,7 +11,7 @@ from c2w2w import C2W2W
 from models import W2C
 from dataset import load_dataset, make_char_vocabulary
 from training import prepare_c2w2c_training_data, prepare_c2w2w_training_data, preprare_w2c_training_data
-from util import info, Timer, MiniIteration
+from util import info, Timer
 from validation import make_c2w2c_test_function, make_c2w2w_test_function, make_w2c_test_function
 
 sys.setrecursionlimit(40000)
@@ -130,7 +130,7 @@ def prepare_env(mode):
 
   elif mode == 'c2w2w':
     trainable_model   = C2W2W(params.n_batch, params, V_C, V_W)
-    validation_model  = C2W2W(1, params, V_C, V_W)
+    validation_model  = C2W2W(params.n_batch, params, V_C, V_W)
     compile_model(trainable_model, returns_chars=False)
     compile_model(validation_model, returns_chars=False)
     load_weights(trainable_model, params.init_weight_file)
@@ -201,15 +201,11 @@ try:
     epoch = e + 1
     print '=== Epoch %d ===' % epoch
 
-    n_samples, make_gen = t_data
-    sentence_seq, data_generator = make_gen()
+    n_samples, data_generator = t_data
 
-    mini_iter = MiniIteration(prev_pp, sentence_seq, model, run_tests,
-                              run_minitest_after=params.mini_iteration)
     model.reset_states()
     h = model.fit_generator(generator=data_generator,
                             samples_per_epoch=n_samples,
-                            callbacks=[mini_iter],
                             nb_epoch=1,
                             verbose=1)
     fit_elapsed, fit_tot = fit_t.lap()

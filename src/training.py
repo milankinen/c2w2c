@@ -2,7 +2,7 @@ import random
 
 import numpy as np
 
-from constants import SOW, EOW
+from constants import SOW, EOW, UNK
 from dataset.helpers import fill_word_one_hots, fill_weights, fill_context_one_hots
 
 
@@ -55,93 +55,69 @@ def _shuffle_batches(batches):
   return batches
 
 
-def _sample_generator(samples_to_vectors, batches, n_batch):
-  i = 0
-  j = 0
-  while 1:
-    samples = []
-    n, b = batches[i]
-    for k in range(0, n_batch):
-      sent  = b[k]
-      if len(sent) > j + 1:
-        w_t   = sent[j]
-        w_tp1 = sent[j + 1]
-        samples.append((w_t, w_tp1))
-      else:
-        samples.append(None)
-    sample_vectors = samples_to_vectors(samples)
-    j += 1
-    if j >= n - 1:
-      j = 0
-      i += 1
-    if i >= len(batches):
-      i = 0
-      j = 0
-    yield sample_vectors
+def _prepare_data(n_batch, dataset, to_samples, shuffle):
+  sents     = dataset.sentences[:]
+  n_samples = (dataset.n_words // n_batch) * n_batch
+
+  def make_generator():
+    while 1:
+      if shuffle:
+        random.shuffle(sents)
+      samples = list([w for s in sents for w in s])
+
+      for i in range(0, n_samples, n_batch):
+        samples_x   = samples[i: i + n_batch]
+        samples_y   = samples[i + 1: i + 1 + n_batch]
+        yield to_samples(zip(samples_x, samples_y))
+
+  return n_samples, make_generator()
 
 
-def prepare_c2w2c_training_data(params, dataset, V_C):
-  n_batch   = params.n_batch
-  maxlen    = params.maxlen
-  batches   = _arrange_to_batches(dataset.sentences, n_batch)
-  n_samples = sum((b[0] - 1) * n_batch for b in batches)
-
-  def samples_to_vectors(samples):
+def _to_c2w2c_samples(params, V_C):
+  def to_samples(samples):
+    n_batch = len(samples)
+    maxlen  = params.maxlen
     X_nc    = np.zeros(shape=(n_batch, maxlen, V_C.size), dtype=np.bool)
     X_nmask = np.zeros(shape=(n_batch, 1), dtype=np.bool)
     X_np1c  = np.zeros(shape=(n_batch, maxlen, V_C.size), dtype=np.bool)
     y       = np.zeros(shape=(n_batch, maxlen, V_C.size), dtype=np.bool)
     W       = np.zeros(shape=(n_batch, maxlen), dtype=np.float32)
     for i, sample in enumerate(samples):
-      if sample is not None:
-        w_n, w_np1 = sample
-        X_nmask[i, 0] = 1
-        fill_word_one_hots(X_nc[i], w_n, V_C, maxlen)
-        fill_word_one_hots(X_np1c[i], SOW + w_np1, V_C, maxlen, pad=EOW)
-        fill_word_one_hots(y[i], w_np1, V_C, maxlen, pad=EOW)
-        fill_weights(W[i], w_np1, dataset, maxlen)
+      w_n, w_np1 = sample
+      X_nmask[i, 0] = 1
+      fill_word_one_hots(X_nc[i], w_n, V_C, maxlen)
+      fill_word_one_hots(X_np1c[i], SOW + w_np1, V_C, maxlen, pad=EOW)
+      fill_word_one_hots(y[i], w_np1, V_C, maxlen, pad=EOW)
+      fill_weights(W[i], w_np1, maxlen)
     return {'w_nc': X_nc, 'w_nmask': X_nmask, 'w_np1c': X_np1c}, y, W
-
-  def make_generator():
-    shuffled  = _shuffle_batches(batches)
-    lengths   = list((b[0] - 1) for b in shuffled)
-    generator = _sample_generator(samples_to_vectors, shuffled, n_batch)
-    return lengths, generator
-
-  return n_samples, make_generator
+  return to_samples
 
 
-def prepare_c2w2w_training_data(params, dataset, V_C, V_W):
-  n_batch   = params.n_batch
-  maxlen    = params.maxlen
-  batches   = _arrange_to_batches(dataset.sentences, n_batch)
-  n_samples = sum((b[0] - 1) * n_batch for b in batches)
-
-  def samples_to_vectors(samples):
+def _to_c2w2w_samples(params, V_C, V_W):
+  def to_samples(samples):
+    n_batch = len(samples)
+    maxlen  = params.maxlen
     X_nc    = np.zeros(shape=(n_batch, maxlen, V_C.size), dtype=np.bool)
     X_nmask = np.zeros(shape=(n_batch, 1), dtype=np.bool)
     y       = np.zeros(shape=(n_batch, V_W.size), dtype=np.bool)
     W       = np.zeros(shape=(n_batch,), dtype=np.float32)
     for i, sample in enumerate(samples):
-      if sample is not None:
-        w_n, w_np1 = sample
-        fill_word_one_hots(X_nc[i], w_n, V_C, maxlen)
-        X_nmask[i, 0]               = 1
-        W[i]                        = 1.
-        y[i, V_W.get_index(w_np1)]  = 1
-    assert np.sum(X_nmask) > 0
-    assert np.sum(y) > 0
-    assert np.sum(W) > 0
+      w_n, w_np1 = sample
+      y_idx      = V_W.get_index(w_np1 if V_W.has(w_np1) else UNK)
+      fill_word_one_hots(X_nc[i], w_n, V_C, maxlen)
+      X_nmask[i, 0] = 1
+      y[i, y_idx]   = 1
+      W[i]          = 1.
     return {'w_nc': X_nc, 'w_nmask': X_nmask}, y, W
+  return to_samples
 
-  def make_generator():
-    shuffled  = _shuffle_batches(batches)
-    lengths   = list((b[0] - 1) for b in shuffled)
-    print lengths
-    generator = _sample_generator(samples_to_vectors, shuffled, n_batch)
-    return lengths, generator
 
-  return n_samples, make_generator
+def prepare_c2w2c_training_data(params, dataset, V_C, shuffle=True):
+  return _prepare_data(params.n_batch, dataset, _to_c2w2c_samples(params, V_C), shuffle)
+
+
+def prepare_c2w2w_training_data(params, dataset, V_C, V_W, shuffle=True):
+  return _prepare_data(params.n_batch, dataset, _to_c2w2w_samples(params, V_C, V_W), shuffle)
 
 
 def preprare_w2c_training_data(params, dataset, V_C, V_W, c2w2w):

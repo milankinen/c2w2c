@@ -18,11 +18,10 @@ def fill_context_one_hots(X, ctx, V_C, maxlen, pad=None):
     fill_word_one_hots(X[i], ctx[i], V_C, maxlen, pad)
 
 
-def fill_weights(w, word, dataset, maxlen):
-  freq = dataset.get_frequency(word)
+def fill_weights(w, word, maxlen):
   tok = w2tok(word, maxlen)
   for i in range(0, len(tok)):
-    w[i] = min(max(1. / np.exp(np.sqrt(1. * freq / dataset.n_words)), .1), 1.)
+    w[i] = 1.
 
 
 def hot2word(hots, V_C):

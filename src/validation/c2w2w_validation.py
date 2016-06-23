@@ -1,8 +1,8 @@
 import numpy as np
 import sys
 
-from ..common import w2str
-from ..dataset.helpers import fill_word_one_hots
+from ..constants import UNK
+from ..training import _prepare_data, _to_c2w2w_samples
 
 
 def _calc_perplexity(V_W, expectations, predictions):
@@ -21,48 +21,57 @@ def _calc_perplexity(V_W, expectations, predictions):
   return (0.0 if n_tested == 0 else np.exp(tot_loss / n_tested)), n_oov, n_tested
 
 
-def _test_model(c2w2w, samples, V_W, quick_mode=False):
-  total_samples = 0
-  total_pp      = 0.0
-  total_tested  = 0
-  total_oov     = 0
-  for expectations, X in samples:
-    c2w2w.reset_states()
-    predictions     = c2w2w.predict(X, batch_size=1)
-    pp, oov, tested = _calc_perplexity(V_W, expectations, predictions)
-    if np.isnan(pp):
-      # for some reason, S_e word predictions are randomly NaN => PP goes NaN
-      # as a quick fix, just drop NaN sentences from the validation set for now
-      if not quick_mode:
-        print 'WARN failed to predict sentence PP: ' + ' '.join([w2str(e) for e in expectations])
+def _calc_loss(V_W, predictions, expectations):
+  l, o, t = 0, 0, 0
+  for idx, sample in enumerate(zip(predictions, expectations)):
+    P, expected = sample
+    is_oov      = not V_W.has(expected)
+    token_index = V_W.get_index(UNK if is_oov else expected)
+    word_loss   = -np.log(P[token_index] / np.sum(P))
+    if np.isnan(word_loss):
+      print 'WARN: unable to get loss of word: ' + expected
+      o += 1
       continue
-    total_pp += pp
-    total_tested += tested
-    total_oov += oov
-    total_samples += 1
+    l += word_loss
+    o += 1 if is_oov else 0
+    t += 0 if is_oov else 1
 
-  pp_avg   = sys.float_info.max if total_samples == 0 else total_pp / total_samples
-  oov_rate = 0. if total_samples == 0 else 1.0 * total_oov / (total_oov + total_tested)
-  return pp_avg, oov_rate
+  #print 'loss', l
+  return l, o, t
+
+
+def _test_model(c2w2w, n_samples, n_batch, generator, V_W):
+  l, o, t, n = 0., 0, 0, 0
+  c2w2w.reset_states()
+  while n < n_samples:
+    X, expectations   = generator.next()
+    predictions       = c2w2w.predict(X, batch_size=n_batch)
+    loss, oov, tested = _calc_loss(V_W, predictions, expectations)
+    l += loss
+    o += oov
+    t += tested
+    n += len(expectations)
+
+  assert n == n_samples
+
+  pp    = sys.float_info.max if t == 0 else np.exp(l / t)
+  oovr  = 0 if t + o == 0 else o / float(t + o)
+  return pp, oovr
 
 
 def make_c2w2w_test_function(c2w2w, params, dataset, V_C, V_W):
-  sents   = dataset.sentences
-  maxlen  = params.maxlen
-  samples = []
-  for s in sents:
-    n_ctx = len(s) - 1
-    X = np.zeros(shape=(n_ctx, maxlen, V_C.size), dtype=np.bool)
-    M = np.ones(shape=(n_ctx, 1), dtype=np.bool)
-    for i in range(0, n_ctx):
-      fill_word_one_hots(X[i], s[i], V_C, maxlen)
-    samples.append((s[1:], {'w_nc': X, 'w_nmask': M}))
+  def to_test_samples(samples):
+    X, _, _ = _to_c2w2w_samples(params, V_C, V_W)(samples)
+    W_np1   = list([s[1] for s in samples])
+    return X, W_np1
+
+  n_batch = params.n_batch
+  n_samples, generator = _prepare_data(n_batch, dataset, to_test_samples, shuffle=False)
 
   def test_model(limit=None):
-    if limit is None:
-      return _test_model(c2w2w, samples, V_W, quick_mode=False)
-    else:
-      return _test_model(c2w2w, samples[0: min(len(samples), limit)], V_W, quick_mode=True)
+    if limit is not None:
+      print 'WARN: limit is not used anymore'
+    return _test_model(c2w2w, n_samples, n_batch, generator, V_W)
 
   return test_model
 
