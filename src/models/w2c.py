@@ -1,11 +1,11 @@
-from keras.layers import LSTM, Input, RepeatVector, merge
+from keras.layers import LSTM, Input, RepeatVector, Activation, merge
 from keras.models import Model
 
 from ..layers import ProjectionOverTime
 
 
 class W2C(Model):
-  def __init__(self, n_batch, maxlen, d_W, d_D, V_C, trainable=True):
+  def __init__(self, n_batch, maxlen, d_W, d_D, V_C, trainable=True, apply_softmax=False):
     """
       n_batch  :: batch size for model application
       maxlen   :: maximum sampled word length
@@ -25,5 +25,9 @@ class W2C(Model):
                    consume_less='gpu')(w_EC)
 
     c_I     = ProjectionOverTime(V_C.size, trainable=trainable)(c_E)
+
+    # for W2C training only
+    if apply_softmax:
+      c_I = Activation('softmax')(c_I)
 
     super(W2C, self).__init__(input=[w_np1E, w_np1c], output=c_I, name='W2C')

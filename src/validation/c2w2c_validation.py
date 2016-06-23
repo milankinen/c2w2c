@@ -2,7 +2,7 @@ import numpy as np
 import sys
 
 from ..common import w2tok, w2str, is_oov
-from ..constants import SOW, EOW
+from ..constants import SOW, EOW, EOS
 from ..dataset.helpers import fill_word_one_hots
 
 
@@ -101,6 +101,51 @@ def _test_model(params, lm, w2c, samples, V_W, V_C, quick_mode=False):
   return pp_avg, oov_rate
 
 
+def _calc_pp_alt(w2c, expected, w_np1e, maxlen, V_W, V_C):
+  if is_oov(expected, maxlen):
+    return 0., 1, 0
+
+  w_np1e  = np.reshape(w_np1e, (1,) + w_np1e.shape)
+  P = np.zeros(shape=(V_W.size,), dtype=np.float64)
+  for w in V_W.tokens:
+    w_np1c  = np.zeros(shape=(1, maxlen, V_C.size), dtype=np.bool)
+    fill_word_one_hots(w_np1c[0], SOW + w, V_C, maxlen, pad=EOW)
+    pred = w2c.predict({'w_np1e': w_np1e, 'w_np1c': w_np1c}, batch_size=1)[0]
+    tok = w2tok(w, maxlen, pad=EOW)
+    P[V_W.get_index(w)] = np.prod([pred[i, V_C.get_index(ch)] for i, ch in enumerate(tok)])
+
+  loss = -np.log(P[V_W.get_index(expected)] / np.sum(P))
+  #print expected, ' loss: ', loss
+  return loss, 0, 1
+
+
+def _test_w2c_model(params, w2c, samples, V_W, V_C):
+  maxlen        = params.maxlen
+  total_samples = 0
+  total_pp      = 0.0
+  total_tested  = 0
+  total_oov     = 0
+  prev_is_EOS   = True
+  for expected, w_np1e in samples:
+    if prev_is_EOS:
+      prev_is_EOS = False
+      continue
+    prev_is_EOS = expected == EOS
+
+    pp, oov, tested = _calc_pp_alt(w2c, expected, w_np1e, maxlen, V_W, V_C)
+    if np.isnan(pp):
+      print 'WARN failed to predict word PP: ' + expected
+      continue
+    total_pp += pp
+    total_tested += tested
+    total_oov += oov
+    total_samples += 1
+
+  pp_avg   = sys.float_info.max if total_samples == 0 else total_pp / total_samples
+  oov_rate = 0. if total_samples == 0 else 1.0 * total_oov / (total_oov + total_tested)
+  return pp_avg, oov_rate
+
+
 def make_c2w2c_test_function(lm, w2c, params, dataset, V_C, V_W):
   sents   = dataset.sentences
   maxlen  = params.maxlen
@@ -118,6 +163,18 @@ def make_c2w2c_test_function(lm, w2c, params, dataset, V_C, V_W):
       return _test_model(params, lm, w2c, samples, V_W, V_C, quick_mode=True)
     else:
       return _test_model(params, lm, w2c, samples[0: min(len(samples), limit)], V_W, V_C, quick_mode=True)
+
+  return test_model
+
+
+def make_w2c_test_function(w2c, params, samples, V_C, V_W):
+  samples = zip(samples[1], samples[0])
+
+  def test_model(limit=None):
+    if limit is None:
+      return _test_w2c_model(params, w2c, samples[0: 10], V_W, V_C)
+    else:
+      return _test_w2c_model(params, w2c, samples[0: min(len(samples), limit)], V_W, V_C)
 
   return test_model
 

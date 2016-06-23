@@ -8,10 +8,11 @@ from keras.optimizers import Adam
 import model_params
 from c2w2c import C2W2C, build_c2w2c_validation_models
 from c2w2w import C2W2W
+from models import W2C
 from dataset import load_dataset, make_char_vocabulary
-from training import prepare_c2w2c_training_data, prepare_c2w2w_training_data
+from training import prepare_c2w2c_training_data, prepare_c2w2w_training_data, preprare_w2c_training_data
 from util import info, Timer, MiniIteration
-from validation import make_c2w2c_test_function, make_c2w2w_test_function
+from validation import make_c2w2c_test_function, make_c2w2w_test_function, make_w2c_test_function
 
 sys.setrecursionlimit(40000)
 
@@ -84,25 +85,21 @@ def prepare_env(mode):
     print '       %10s' % str(sum([param_count(m) for m in [c2w, lm, w2c]]))
 
   elif mode == 'w2c_train':
-    """
-    # Load existing weights from previously trained word model, set C2W
-    # and LM weights and train only W2C weights
-    trainable_model   = build_trainable_model(params.n_batch, mode='c2w2c', c2w_trainable=False, lm_trainable=False, w2c_trainable=True)
-    c2w2w_model       = build_trainable_model(params.n_batch, mode='word')
-    lm, w2c           = build_validation_models('c2wc2')
-    lm_idx            = -3
-    update_weights    = lambda: (lm.set_weights([w for l in trainable_model.layers[0:-2] for w in l.get_weights()]),
-                                 w2c.set_weights(trainable_model.layers[-1].get_weights()))
-    test_model        = make_c2w2c_test_function(lm, lambda: reset_lm(lm.layers[-1]), w2c, params, test_dataset, V_C, V_W)
-    training_data     = prepare_c2w2c_training_data(params, training_dataset, V_C)
-    load_weights(c2w2w_model, params.init_weight_file)
-    print 'Transferring C2W2W model weights to C2W2C...'
-    for i in range(0, len(c2w2w_model.layers) - 1):
-      dest = trainable_model.layers[i]
-      src  = c2w2w_model.layers[i]
-      dest.set_weights(src.get_weights())
-    """
-    raise NotImplementedError
+    c2w2w_datagen     = C2W2W(1, params, V_C, V_W)
+    v_c2wp1, _        = build_c2w2c_validation_models(params, V_C)
+    trainable_model   = W2C(params.n_batch, params.maxlen, params.d_W, params.d_D, V_C, apply_softmax=True)
+    compile_model(c2w2w_datagen, returns_chars=False)
+    compile_model(trainable_model, returns_chars=True)
+    compile_model(v_c2wp1, returns_chars=False)
+    load_weights(c2w2w_datagen, params.init_weight_file)
+    v_c2wp1.set_weights([w for l in c2w2w_datagen.layers[0:-2] for w in l.get_weights()])
+
+    def update_weights():
+      pass  # using same model for test as used in training
+
+    training_data, data = preprare_w2c_training_data(params, training_dataset, V_C, V_W, v_c2wp1)
+    test_model          = make_w2c_test_function(trainable_model, params, data, V_C, V_W)
+
   elif mode == 'c2w2w':
     trainable_model   = C2W2W(params.n_batch, params, V_C, V_W)
     validation_model  = C2W2W(1, params, V_C, V_W)

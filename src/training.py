@@ -3,7 +3,7 @@ import random
 import numpy as np
 
 from constants import SOW, EOW
-from dataset.helpers import fill_word_one_hots, fill_weights
+from dataset.helpers import fill_word_one_hots, fill_weights, fill_context_one_hots
 
 
 def _groupby(col, fn):
@@ -142,3 +142,56 @@ def prepare_c2w2w_training_data(params, dataset, V_C, V_W):
     return lengths, generator
 
   return n_samples, make_generator
+
+
+def preprare_w2c_training_data(params, dataset, V_C, V_W, c2w2w):
+  n_batch   = params.n_batch
+  maxlen    = params.maxlen
+  sents     = dataset.sentences
+  n_samples = sum([len(s) - 1 for s in sents])
+  Xo = np.zeros(shape=(n_samples, params.d_W), dtype=np.float32)
+  yo = []
+  i = 0
+  for s in sents:
+    n_ctx = len(s) - 1
+    c2w2w.reset_states()
+    Xw = np.zeros(shape=(n_ctx, maxlen, V_C.size), dtype=np.bool)
+    Xm = np.ones(shape=(n_ctx, ), dtype=np.bool)
+    fill_context_one_hots(Xw, s[0:-1], V_C, maxlen)
+    x = c2w2w.predict({'w_nc': Xw, 'w_nmask': Xm}, batch_size=1)
+    for j in range(0, n_ctx):
+      np.copyto(Xo[i], x[j])
+      yo.append(s[j + 1])
+      i += 1
+
+  assert n_samples == len(yo)
+
+  def make_generator():
+    # shuffle data before iteration
+    p = np.random.permutation(n_samples)
+    Xs = Xo[p]
+    ys = []
+    for i in p: ys.append(yo[i])
+
+    def generator_fn():
+      idx = 0
+      while 1:
+        actual = min(n_samples - idx, n_batch)
+        Xe  = np.zeros(shape=(actual, params.d_W), dtype=np.float32)
+        Xc  = np.zeros(shape=(actual, maxlen, V_C.size), dtype=np.bool)
+        y   = np.zeros(shape=(actual, maxlen, V_C.size), dtype=np.bool)
+        W   = np.zeros(shape=(actual, maxlen), dtype=np.float32)
+        for i in range(0, actual):
+          np.copyto(Xe[i], Xs[idx])
+          fill_word_one_hots(Xc[i], SOW + ys[idx], V_C, maxlen, pad=EOW)
+          fill_word_one_hots(y[i], ys[idx], V_C, maxlen)
+          fill_weights(W[i], ys[idx], dataset, maxlen)
+          idx += 1
+        if idx >= n_samples:
+          idx = 0
+        yield ({'w_np1e': Xe, 'w_np1c': Xc}, y, W)
+
+    return [n_samples], generator_fn()
+
+  return (n_samples, make_generator), (Xo, yo)
+
