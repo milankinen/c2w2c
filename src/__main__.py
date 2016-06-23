@@ -102,8 +102,8 @@ def prepare_env(mode):
       v_c2wp1.set_weights(c2w.get_weights() + lm.get_weights())
       v_w2c.set_weights(w2c.get_weights())
 
-    def save_weights():
-      try_save_weights(trainable_model, params.save_weight_file)
+    def save_weights(filename):
+      try_save_weights(trainable_model, filename)
 
     test_model        = make_c2w2c_test_function(trainable_model, v_c2wp1, v_w2c, params, test_dataset, V_C, V_W)
     training_data     = prepare_c2w2c_training_data(params, training_dataset, V_C)
@@ -123,8 +123,8 @@ def prepare_env(mode):
     def update_weights():
       pass  # using same model for test as used in training
 
-    def save_weights():
-      try_save_weights(trainable_model, params.save_weight_file)
+    def save_weights(filename):
+      try_save_weights(trainable_model, filename)
 
     test_model        = make_c2w2w_test_function(trainable_model, params, test_dataset, V_C, V_W)
     training_data     = prepare_c2w2w_training_data(params, training_dataset, V_C, V_W)
@@ -150,9 +150,9 @@ def prepare_env(mode):
       # c2w2c needs updated weights if validating with "full" mode
       w2c.set_weights(trainable_model.get_weights())
 
-    def save_weights():
+    def save_weights(filename):
       update_weights()
-      try_save_weights(c2w2c, params.save_weight_file)
+      try_save_weights(c2w2c, filename)
 
     training_data = prepare_w2c_training_data(c2wp1, params, training_dataset, V_C)
     test_model    = make_c2w2c_test_function(c2w2c, c2wp1, trainable_model, params, test_dataset, V_C, V_W)
@@ -196,7 +196,8 @@ def run_model_tests(prev_pp):
   return pp, oov
 
 
-best_weights = None
+best_weights          = None
+target_weight_filename  = params.save_weight_file
 
 try:
   if params.test_only:
@@ -229,15 +230,20 @@ try:
     print ''
     info(epoch_info)
 
+    # persist weights anyway (if weight file is defined)
+    persist_weights(target_weight_filename)
+
     # needed for validation models LM and W2C
     pp, _ = run_model_tests(prev_pp)
 
     if prev_pp is None or pp <= prev_pp:
+      # persist '.best' weight file only if PP has improved since last "best"
+      if prev_pp is not None and target_weight_filename is not None:
+        persist_weights(target_weight_filename + '.best')
       best_weights = np.array(model.get_weights())
       prev_acc  = acc
       prev_loss = loss
       prev_pp   = pp
-      persist_weights()
 
   print 'Training complete'
 except KeyboardInterrupt:
