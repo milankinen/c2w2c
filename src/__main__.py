@@ -138,7 +138,7 @@ def prepare_env(mode):
       sys.exit(1)
 
     # build models: w2c for training, validation models for data generation and quick PP checks
-    trainable_model       = W2C(params.n_batch, params.maxlen, params.d_W, params.d_D, V_C, apply_softmax=True)
+    trainable_model       = W2C(params.maxlen, params.d_W, params.d_D, V_C, apply_softmax=True)
     c2w2c, (c2w, lm, w2c) = c2w2c_from_c2w2w_weights(params.c2w2w_weights)
     c2wp1, _              = build_c2w2c_validation_models(params, V_C)
     compile_model(trainable_model, returns_chars=True)

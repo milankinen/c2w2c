@@ -24,7 +24,7 @@ def C2W2C(n_batch, params, V_C, c2w_trainable=True, lm_trainable=True, w2c_train
   # sub-models
   c2w       = C2W(maxlen, d_C, d_W, d_Wi, V_C, trainable=c2w_trainable)
   lm        = LanguageModel(n_batch, d_W, d_L, trainable=lm_trainable)
-  w2c       = W2C(n_batch, maxlen, d_W, d_D, V_C, trainable=w2c_trainable)
+  w2c       = W2C(maxlen, d_W, d_D, V_C, trainable=w2c_trainable)
 
   # the actual c2w2c model
   w_nE      = Dropout(.5)(c2w(w_nc))

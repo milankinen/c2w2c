@@ -5,7 +5,7 @@ from ..layers import ProjectionOverTime
 
 
 class W2C(Model):
-  def __init__(self, n_batch, maxlen, d_W, d_D, V_C, trainable=True, apply_softmax=False):
+  def __init__(self, maxlen, d_W, d_D, V_C, trainable=True, apply_softmax=False):
     """
       n_batch  :: batch size for model application
       maxlen   :: maximum sampled word length
@@ -14,8 +14,8 @@ class W2C(Model):
       V_C      :: character vocabulary
     """
 
-    w_np1E  = Input(batch_shape=(n_batch, d_W), name='w_np1e', dtype='floatX')
-    w_np1c  = Input(batch_shape=(n_batch, maxlen, V_C.size), name='w_np1c', dtype='int8')
+    w_np1E  = Input(shape=(d_W, ), name='w_np1e', dtype='floatX')
+    w_np1c  = Input(shape=(maxlen, V_C.size), name='w_np1c', dtype='int8')
 
     w_E     = RepeatVector(maxlen)(w_np1E)
     w_EC    = merge(inputs=[w_E, w_np1c], mode='concat')
