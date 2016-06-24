@@ -3,12 +3,13 @@ import random
 import numpy as np
 
 from ..constants import SOW, EOW, UNK
-from ..dataset.helpers import fill_word_one_hots, fill_weights, fill_context_one_hots
+from ..dataset.helpers import fill_word_one_hots, fill_weights
 
 
 def prepare_data(n_batch, dataset, to_samples, shuffle):
   sents     = dataset.sentences[:]
-  n_samples = (dataset.n_words // n_batch) * n_batch
+  n_context = dataset.n_words // n_batch
+  n_samples = n_context * n_batch
 
   def make_generator():
     while 1:
@@ -16,10 +17,12 @@ def prepare_data(n_batch, dataset, to_samples, shuffle):
         random.shuffle(sents)
       samples = list([w for s in sents for w in s])
 
-      for i in range(0, n_samples, n_batch):
-        samples_x   = samples[i: i + n_batch]
-        samples_y   = samples[i + 1: i + 1 + n_batch]
-        yield to_samples(zip(samples_x, samples_y))
+      for i in range(0, n_context):
+        X, y = [], []
+        for j in range(0, n_batch):
+          X.append(samples[j * n_context + i])
+          y.append(samples[j * n_context + i + 1])
+        yield to_samples(zip(X, y))
 
   return n_samples, make_generator()
 
