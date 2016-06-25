@@ -12,7 +12,7 @@ from models import W2C
 from datagen import prepare_c2w2c_training_data, prepare_c2w2w_training_data, prepare_w2c_training_data
 from datagen import sample_c2w2c_text, sample_c2w2w_text
 from dataset import load_dataset, make_char_vocabulary
-from util import info, Timer
+from util import info, Timer, ContextReset
 from validation import make_c2w2c_test_function, make_c2w2w_test_function
 
 sys.setrecursionlimit(40000)
@@ -110,8 +110,10 @@ def prepare_env(mode):
       update_weights()
       sample_c2w2c_text(v_c2wp1, v_w2c, seed, how_many, V_W, V_C, params)
 
-    test_model        = make_c2w2c_test_function(trainable_model, v_c2wp1, v_w2c, params, test_dataset, V_C, V_W)
-    training_data     = prepare_c2w2c_training_data(params, training_dataset, V_C)
+    def prepare_training_data():
+      return prepare_c2w2c_training_data(params, training_dataset, V_C)
+
+    test_model  = make_c2w2c_test_function(trainable_model, v_c2wp1, v_w2c, params, test_dataset, V_C, V_W)
 
     print 'Model parameters:'
     print ' - C2W:%10s' % str(param_count(c2w))
@@ -134,8 +136,10 @@ def prepare_env(mode):
     def sample_text(seed, how_many):
       sample_c2w2w_text(trainable_model, seed, how_many, V_W, V_C, params)
 
-    test_model        = make_c2w2w_test_function(trainable_model, params, test_dataset, V_C, V_W)
-    training_data     = prepare_c2w2w_training_data(params, training_dataset, V_C, V_W)
+    def prepare_training_data():
+      return prepare_c2w2w_training_data(params, training_dataset, V_C, V_W)
+
+    test_model = make_c2w2w_test_function(trainable_model, params, test_dataset, V_C, V_W)
 
     print 'Model parameters:'
     print ' - Total:%10s' % str(param_count(trainable_model))
@@ -166,8 +170,10 @@ def prepare_env(mode):
       update_weights()
       sample_c2w2c_text(c2wp1, w2c, seed, how_many, V_W, V_C, params)
 
-    training_data = prepare_w2c_training_data(c2wp1, params, training_dataset, V_C)
-    test_model    = make_c2w2c_test_function(c2w2c, c2wp1, trainable_model, params, test_dataset, V_C, V_W)
+    def prepare_training_data():
+      return prepare_w2c_training_data(c2wp1, params, training_dataset, V_C)
+
+    test_model = make_c2w2c_test_function(c2w2c, c2wp1, trainable_model, params, test_dataset, V_C, V_W)
 
   else:
     print 'Invalid mode: %s' % mode
@@ -177,7 +183,7 @@ def prepare_env(mode):
     update_weights()
     return test_model()
 
-  return trainable_model, test_fn, sample_text, save_weights, training_data
+  return trainable_model, test_fn, sample_text, save_weights, prepare_training_data
 
 
 fit_t     = Timer()
@@ -187,7 +193,7 @@ prev_pp   = None
 prev_loss = None
 prev_acc  = None
 
-model, run_tests, generate_text, persist_weights, t_data = prepare_env(params.mode)
+model, run_tests, generate_text, persist_weights, prep_data = prepare_env(params.mode)
 
 
 def run_model_tests(prev_pp):
@@ -228,11 +234,12 @@ try:
     epoch = e + 1
     print '=== Epoch %d ===' % epoch
 
-    n_samples, data_generator = t_data
+    n_samples, meta, data_generator = prep_data()
 
     model.reset_states()
     h = model.fit_generator(generator=data_generator,
                             samples_per_epoch=n_samples,
+                            callbacks=[ContextReset(model, meta)],
                             nb_epoch=1,
                             verbose=1)
     fit_elapsed, fit_tot = fit_t.lap()

@@ -4,7 +4,7 @@ import numpy as np
 
 from training import prepare_data, to_c2w2c_samples
 from ..common import w2str
-from ..constants import EOS
+from ..constants import SOS
 from ..dataset import Dataset
 from ..validation.helpers import word_probability_from_chars, sample_char_probabilities
 
@@ -31,7 +31,7 @@ def _sample_step(c2wnp1, words, V_C, params):
     X, _, _ = to_c2w2c_samples(params, V_C)(samples)
     return {'w_nc': X['w_nc'], 'w_nmask': X['w_nmask']}
 
-  n_samples, gen = prepare_data(params.n_batch, Dataset((words * params.n_batch) + [EOS]), to_samples, shuffle=False)
+  n_samples, _, gen = prepare_data(1, Dataset(words + [SOS]), to_samples, shuffle=False)
   return c2wnp1.predict_generator(gen, n_samples)[-1]
 
 
