@@ -12,7 +12,8 @@ def _calc_loss(V_W, predictions, expectations):
     is_oov      = not V_W.has(expected)
     token_index = V_W.get_index(UNK if is_oov else expected)
     word_loss   = -np.log(P[token_index] / np.sum(P))
-    if np.isnan(word_loss):
+    #print expected, '=', word_loss
+    if np.isinf(word_loss):
       print 'WARN: unable to get loss of word: ' + expected
       o += 1
       continue
