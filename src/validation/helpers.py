@@ -4,9 +4,9 @@ from Queue import Queue
 import numpy as np
 
 from ..common import w2tok
-from ..constants import EOW
+from ..constants import EOW, SOW
 from ..dataset import Vocabulary
-from ..dataset.helpers import fill_context_one_hots
+from ..dataset.helpers import fill_context_one_hots, fill_word_one_hots
 
 
 class WordProbGen(threading.Thread):
@@ -38,8 +38,8 @@ class WordProbGen(threading.Thread):
 def word_probability_from_chars(word, p_chars, maxlen, V_C):
   def char_p(ch, i):
     return p_chars[i, V_C.get_index(ch)] / np.sum(p_chars[i])
-  tok = w2tok(word, maxlen, pad=EOW)
-  return np.prod([char_p(ch, i) for i, ch in enumerate(tok)])
+  tok = w2tok(word, maxlen, pad=None)
+  return np.exp(np.sum(np.log([char_p(ch, i) for i, ch in enumerate(tok)])))
 
 
 def calc_p_words_for_vocabulary(w2c, w_np1e, V_C, V_W, params):
@@ -60,4 +60,19 @@ def calc_p_words_for_vocabulary(w2c, w_np1e, V_C, V_W, params):
 def calc_p_word_for_single_word(w2c, w_np1e, word, V_C, params):
   p_words = calc_p_words_for_vocabulary(w2c, w_np1e, Vocabulary([word]), V_C, params)
   return p_words[0]
+
+
+def sample_char_probabilities(w2c, w_np1e, V_C, params):
+  maxlen  = params.maxlen
+  W_np1e  = np.reshape(w_np1e, (1,) + w_np1e.shape)
+  W_np1c  = np.zeros(shape=(1, maxlen, V_C.size), dtype=np.bool)
+  p_chars = np.zeros(shape=(maxlen, V_C.size), dtype=np.float32)
+  fill_word_one_hots(W_np1c[0], SOW, V_C, maxlen, pad=None)
+  for i in range(0, maxlen):
+    p = w2c.predict({'w_np1e': W_np1e, 'w_np1c': W_np1c}, batch_size=1)[0, i]
+    np.copyto(p_chars[i], p)
+    if i < maxlen - 1:
+      W_np1c[0, i + 1, V_C.get_index(EOW)] = 0
+      W_np1c[0, i + 1, np.argmax(p)] = 1
+  return p_chars
 

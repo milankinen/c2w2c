@@ -10,6 +10,7 @@ from c2w2c import C2W2C, build_c2w2c_validation_models
 from c2w2w import C2W2W
 from models import W2C
 from datagen import prepare_c2w2c_training_data, prepare_c2w2w_training_data, prepare_w2c_training_data
+from datagen import sample_c2w2c_text, sample_c2w2w_text
 from dataset import load_dataset, make_char_vocabulary
 from util import info, Timer
 from validation import make_c2w2c_test_function, make_c2w2w_test_function
@@ -105,6 +106,10 @@ def prepare_env(mode):
     def save_weights(filename):
       try_save_weights(trainable_model, filename)
 
+    def sample_text(seed, how_many):
+      update_weights()
+      sample_c2w2c_text(v_c2wp1, v_w2c, seed, how_many, V_W, V_C, params)
+
     test_model        = make_c2w2c_test_function(trainable_model, v_c2wp1, v_w2c, params, test_dataset, V_C, V_W)
     training_data     = prepare_c2w2c_training_data(params, training_dataset, V_C)
 
@@ -125,6 +130,9 @@ def prepare_env(mode):
 
     def save_weights(filename):
       try_save_weights(trainable_model, filename)
+
+    def sample_text(seed, how_many):
+      sample_c2w2w_text(trainable_model, seed, how_many, V_W, V_C, params)
 
     test_model        = make_c2w2w_test_function(trainable_model, params, test_dataset, V_C, V_W)
     training_data     = prepare_c2w2w_training_data(params, training_dataset, V_C, V_W)
@@ -154,6 +162,10 @@ def prepare_env(mode):
       update_weights()
       try_save_weights(c2w2c, filename)
 
+    def sample_text(seed, how_many):
+      update_weights()
+      sample_c2w2c_text(c2wp1, w2c, seed, how_many, V_W, V_C, params)
+
     training_data = prepare_w2c_training_data(c2wp1, params, training_dataset, V_C)
     test_model    = make_c2w2c_test_function(c2w2c, c2wp1, trainable_model, params, test_dataset, V_C, V_W)
 
@@ -165,7 +177,7 @@ def prepare_env(mode):
     update_weights()
     return test_model()
 
-  return trainable_model, test_fn, save_weights, training_data
+  return trainable_model, test_fn, sample_text, save_weights, training_data
 
 
 fit_t     = Timer()
@@ -175,12 +187,18 @@ prev_pp   = None
 prev_loss = None
 prev_acc  = None
 
-model, run_tests, persist_weights, t_data = prepare_env(params.mode)
+model, run_tests, generate_text, persist_weights, t_data = prepare_env(params.mode)
 
 
 def run_model_tests(prev_pp):
   if params.gen_n_samples is not None:
-    print 'Text generation currently not supported...'    # TODO: implement
+    print 'Generating text...'
+    n_seed = 3
+    seed   = test_dataset.sentences
+    if len(seed) > n_seed:
+      idx = np.random.randint(0, len(seed) - n_seed)
+      seed = seed[idx: idx + n_seed]
+    generate_text([w for s in seed for w in s], params.gen_n_samples)
 
   print 'Validating model...'
   test_t.start()

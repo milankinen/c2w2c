@@ -8,7 +8,7 @@ from ..dataset.helpers import fill_word_one_hots, fill_weights
 
 def prepare_data(n_batch, dataset, to_samples, shuffle):
   sents     = dataset.sentences[:]
-  n_context = dataset.n_words // n_batch
+  n_context = (dataset.n_words - 1) // n_batch
   n_samples = n_context * n_batch
 
   def make_generator():
