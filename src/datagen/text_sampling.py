@@ -4,7 +4,7 @@ import numpy as np
 
 from training import prepare_data, to_c2w2c_samples
 from ..common import w2str
-from ..constants import SOS
+from ..constants import SOS, EOW
 from ..dataset import Dataset
 from ..validation.helpers import word_probability_from_chars, sample_char_probabilities
 
@@ -18,6 +18,17 @@ def _select_best_word(w2c, w_np1e, V_C, V_W, params):
       w = tok
       p = p_t
   return w
+
+
+def _select_char_by_char(w2c, w_np1e, V_C, params):
+  word    = ''
+  p_chars = sample_char_probabilities(w2c, w_np1e, V_C, params)
+  for p in p_chars:
+    ch = V_C.get_token(np.argmax(p))
+    if ch == EOW:
+      break
+    word += ch
+  return word
 
 
 def stdw(words):
@@ -43,8 +54,8 @@ def sample_c2w2c_text(c2wnp1, wc2, seed, how_many, V_W, V_C, params):
   # then predict words word by word and sample the received word embedding
   # to actual word by using some strategy (e.g. char-by-char)
   for _ in range(0, how_many):
-    next_word  = _select_best_word(wc2, w_np1e, V_C, V_W, params)
-    #next_word = _sample_char_by_char(wc2, w_np1e, V_C, params)
+    #next_word  = _select_best_word(wc2, w_np1e, V_C, V_W, params)
+    next_word = _select_char_by_char(wc2, w_np1e, V_C, params)
     stdw([next_word])
     w_np1e = _sample_step(c2wnp1, [next_word], V_C, params)
   print '\n'
