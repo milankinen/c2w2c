@@ -113,6 +113,6 @@ def calc_pp(model, n_batch, meta, generator, loss_fn):
       res += _lot(zip(predictions, expectations), loss_fn)
 
   pp    = np.mean(list(r[0] for r in res))
-  t, o  = sum(r[1] for r in res), sum(r[2] for r in res)
+  o, t  = sum(r[1] for r in res), sum(r[2] for r in res)
   oovr  = 0 if t + o == 0 else o / float(t + o)
   return pp, oovr
