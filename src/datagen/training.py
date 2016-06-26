@@ -12,14 +12,34 @@ def _grouped(col, n):
   return dst
 
 
-def prepare_data(n_batch, dataset, to_samples, shuffle):
+def _batches_per_sentence(n_batch, dataset):
   sents = sorted(dataset.sentences[:], cmp=lambda a, b: cmp(len(a), len(b)), reverse=True)
   if len(sents) % n_batch != 0:
     sents += [None] * (n_batch - (len(sents) % n_batch))
   assert len(sents) % n_batch == 0
   batches   = _grouped(sents, n_batch)
   meta      = list(len(b[0]) - 1 for b in batches)
-  n_samples = sum(meta) * n_batch
+  return batches, meta
+
+
+def _batches_per_dataset(n_batch, dataset):
+  sents = dataset.sentences[:]
+  n_max = dataset.n_words // n_batch
+  batch = [[]]
+  for s in sents:
+    n_new = len(s) + len(batch[-1])
+    if n_new > n_max:
+      batch.append([])
+    batch[-1] += s
+  batch = sorted(batch[0: n_batch], cmp=lambda a, b: cmp(len(a), len(b)), reverse=True)
+  meta  = len(batch[0]) - 1
+  return [batch], [meta]
+
+
+def prepare_data(n_batch, dataset, to_samples, shuffle):
+  #batches, meta = _batches_per_sentence(n_batch, dataset)
+  batches, meta = _batches_per_dataset(n_batch, dataset)
+  n_samples     = sum(meta) * n_batch
 
   if shuffle:
     b, m = [], []
