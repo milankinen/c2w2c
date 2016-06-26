@@ -1,46 +1,18 @@
 import numpy as np
-import sys
 
-from ..constants import UNK
 from ..datagen import prepare_data, to_c2w2w_samples
-
-
-def _calc_loss(V_W, predictions, expectations):
-  l, o, t = 0, 0, 0
-  for idx, sample in enumerate(zip(predictions, expectations)):
-    P, expected = sample
-    if expected is None:
-      continue
-
-    is_oov      = not V_W.has(expected)
-    token_index = V_W.get_index(UNK if is_oov else expected)
-    word_loss   = -np.log(P[token_index] / np.sum(P))
-    #print expected, '=', word_loss
-    if np.isinf(word_loss):
-      print 'WARN: unable to get loss of word: ' + expected
-      o += 1
-      continue
-    l += word_loss
-    o += 1 if is_oov else 0
-    t += 0 if is_oov else 1
-  return l, o, t
+from helpers import calc_pp
 
 
 def _calc_pp(c2w2w, meta, n_batch, generator, V_W):
-  l, o, t, n = 0., 0, 0, 0
-  for n in meta:
-    c2w2w.reset_states()
-    for _ in range(0, n):
-      X, expectations   = generator.next()
-      predictions       = c2w2w.predict(X, batch_size=n_batch)
-      loss, oov, tested = _calc_loss(V_W, predictions, expectations)
-      l += loss
-      o += oov
-      t += tested
+  def loss_fn(P, expected):
+    is_oov = not V_W.has(expected)
+    if not is_oov:
+      token_index = V_W.get_index(expected)
+      word_loss   = -np.log(P[token_index] / np.sum(P))
+      return word_loss
 
-  pp    = sys.float_info.max if t == 0 else np.exp(l / t)
-  oovr  = 0 if t + o == 0 else o / float(t + o)
-  return pp, oovr
+  return calc_pp(c2w2w, n_batch, meta, generator, loss_fn)
 
 
 def make_c2w2w_test_function(c2w2w, params, dataset, V_C, V_W):

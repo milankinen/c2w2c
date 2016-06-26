@@ -1,8 +1,6 @@
-import sys
-
 import numpy as np
 
-from helpers import calc_p_words_for_vocabulary, calc_p_word_for_single_word, word_probability_from_chars, sample_char_probabilities
+from helpers import calc_p_words_for_vocabulary, calc_p_word_for_single_word, word_probability_from_chars, sample_char_probabilities, calc_pp
 from ..common import is_oov
 from ..datagen import prepare_data, to_c2w2c_samples
 
@@ -21,117 +19,40 @@ def _calc_word_loss_over_vocabulary(w2c, w_np1e, expected, V_C, V_W, params):
   return -np.log(p_expected[1] / np.sum(p for _, p in p_words))
 
 
-def _calc_quick_loss(P_chars, expectations, V_C, maxlen):
-  l, o, t = 0., 0, 0
-  for idx, sample in enumerate(zip(P_chars, expectations)):
-    p_chars, expected = sample
-    if expected is None:
-      continue
-    if is_oov(expected, maxlen):
-      o += 1
-      continue
-    word_loss = -np.log(word_probability_from_chars(expected, p_chars, maxlen, V_C))
-    #print expected, '=', word_loss
-    if np.isinf(word_loss):
-      print 'WARN: unable to get loss of word: ' + expected
-      o += 1
-      continue
-    l += word_loss
-    t += 1
-  return l, o, t
-
-
-def _calc_loss(w2c, W_np1e, expectations, V_C, V_W, params):
-  l, o, t = 0., 0, 0
-  for idx, sample in enumerate(zip(W_np1e, expectations)):
-    w_np1e, expected = sample
-    if expected is None:
-      continue
-    if is_oov(expected, params.maxlen):
-      o += 1
-      continue
-    # ATTENTION: this is **very expensive** operation...
-    word_loss = _calc_word_loss_over_vocabulary(w2c, w_np1e, expected, V_C, V_W, params)
-    #print expected, '=', word_loss
-    if np.isinf(word_loss):
-      print 'WARN: unable to get loss of word: ' + expected
-      o += 1
-      continue
-    l += word_loss
-    t += 1
-  return l, o, t
-
-
 def _calc_normalized_pp(lm, w2c, meta, n_batch, generator, V_C, V_W, params):
-  l, o, t, n = 0., 0, 0, 0
-  for n in meta:
-    lm.reset_states()
-    for _ in range(0, n):
-      X, expectations   = generator.next()
-      W_np1e            = lm.predict(X, batch_size=n_batch)
-      loss, oov, tested = _calc_loss(w2c, W_np1e, expectations, V_C, V_W, params)
-      l += loss
-      o += oov
-      t += tested
+  def loss_fn(w_np1e, expected):
+    if not is_oov(expected, params.maxlen):
+      word_loss = _calc_word_loss_over_vocabulary(w2c, w_np1e, expected, V_C, V_W, params)
+      return word_loss
 
-  pp    = sys.float_info.max if t == 0 else np.exp(l / t)
-  oovr  = 0 if t + o == 0 else o / float(t + o)
-  return pp, oovr
+  return calc_pp(lm, n_batch, meta, generator, loss_fn)
 
 
 def _calc_sampled_pp(lm, w2c, meta, n_batch, generator, V_C, V_W, params):
-  l, o, t, n = 0., 0, 0, 0
-  for n in meta:
-    lm.reset_states()
-    for _ in range(0, n):
-      X, expectations = generator.next()
-      W_np1e          = lm.predict(X, batch_size=n_batch)
-      for w_np1e, expected in zip(W_np1e, expectations):
-        if expected is None:
-          continue
-        if is_oov(expected, params.maxlen):
-          o += 1
-          continue
-        p_words, p_expected = [], None
-        p_chars = sample_char_probabilities(w2c, w_np1e, V_C, params)
-        for tok in V_W.tokens:
-          p = word_probability_from_chars(tok, p_chars, params.maxlen, V_C)
-          p_words.append(p)
-          if tok == expected:
-            p_expected = p
-        if p_expected is None:
-          p_words.append(word_probability_from_chars(expected, p_chars, params.maxlen, V_C))
-          p_expected = p_words[-1]
-        word_loss = -np.log(p_expected / np.sum(p_words))
-        #print expected, '=', word_loss
-        if np.isinf(word_loss):
-          print 'WARN: unable to get loss of word: ' + expected
-          o += 1
-          continue
-        l += word_loss
-        t += 1
+  def loss_fn(w_np1e, expected):
+    p_words, p_expected = [], None
+    p_chars = sample_char_probabilities(w2c, w_np1e, V_C, params)
+    for tok in V_W.tokens:
+      p = word_probability_from_chars(tok, p_chars, params.maxlen, V_C)
+      p_words.append(p)
+      if tok == expected:
+        p_expected = p
+    if p_expected is None:
+      p_words.append(word_probability_from_chars(expected, p_chars, params.maxlen, V_C))
+      p_expected = p_words[-1]
+    word_loss = -np.log(p_expected / np.sum(p_words))
+    return word_loss
 
-  pp    = sys.float_info.max if t == 0 else np.exp(l / t)
-  oovr  = 0 if t + o == 0 else o / float(t + o)
-  return pp, oovr
+  return calc_pp(lm, n_batch, meta, generator, loss_fn)
 
 
 def _calc_quick_pp(c2w2c, meta, n_batch, generator, V_C, maxlen):
-  l, o, t, n = 0., 0, 0, 0
-  c2w2c.reset_states()
-  for n in meta:
-    c2w2c.reset_states()
-    for _ in range(0, n):
-      X, expectations   = generator.next()
-      predictions       = c2w2c.predict(X, batch_size=n_batch)
-      loss, oov, tested = _calc_quick_loss(predictions, expectations, V_C, maxlen)
-      l += loss
-      o += oov
-      t += tested
+  def loss_fn(p_chars, expected):
+    if not is_oov(expected, maxlen):
+      word_loss = -np.log(word_probability_from_chars(expected, p_chars, maxlen, V_C))
+      return word_loss
 
-  pp    = sys.float_info.max if t == 0 else np.exp(l / t)
-  oovr  = 0 if t + o == 0 else o / float(t + o)
-  return pp, oovr
+  return calc_pp(c2w2c, n_batch, meta, generator, loss_fn)
 
 
 def _make_full_test_fn(lm, w2c, params, dataset, V_C, V_W):

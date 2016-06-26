@@ -1,10 +1,11 @@
 import threading
+import sys
 from Queue import Queue
 
 import numpy as np
 
 from ..common import w2tok
-from ..constants import EOW, SOW
+from ..constants import EOW, SOW, EOS
 from ..dataset import Vocabulary
 from ..dataset.helpers import fill_context_one_hots, fill_word_one_hots
 
@@ -67,12 +68,51 @@ def sample_char_probabilities(w2c, w_np1e, V_C, params):
   W_np1e  = np.reshape(w_np1e, (1,) + w_np1e.shape)
   W_np1c  = np.zeros(shape=(1, maxlen, V_C.size), dtype=np.bool)
   p_chars = np.zeros(shape=(maxlen, V_C.size), dtype=np.float32)
-  fill_word_one_hots(W_np1c[0], SOW, V_C, maxlen, pad=None)
+  fill_word_one_hots(W_np1c[0], SOW, V_C, maxlen, pad=EOW)
   for i in range(0, maxlen):
     p = w2c.predict({'w_np1e': W_np1e, 'w_np1c': W_np1c}, batch_size=1)[0, i]
     np.copyto(p_chars[i], p)
     if i < maxlen - 1:
       W_np1c[0, i + 1, V_C.get_index(EOW)] = 0
       W_np1c[0, i + 1, np.argmax(p)] = 1
+
   return p_chars
 
+
+def calc_pp(model, n_batch, meta, generator, loss_fn):
+  lot = [(0., 0, 0)] * n_batch
+
+  def _lot(samples, loss_fn):
+    assert len(samples) == len(lot)
+    res = []
+    for idx, sample in enumerate(samples):
+      predicted, expected = sample
+      if expected is None:
+        continue
+      pl, po, pt = lot[idx]
+      loss = loss_fn(predicted, expected)
+      nl, no, nt = (loss, 0, 1) if (loss is not None and not np.isinf(loss)) else (0., 1, 0)
+      lot[idx] = (pl + nl, po + no, pt + nt)
+      if loss is not None:
+        #print expected, '=', loss
+        if np.isinf(loss):
+          print 'WARN: unable to get loss of "%s"' % expected
+      if expected == EOS:
+        l, o, t = lot[idx]
+        pp = sys.float_info.max if t == 0 else np.exp(l / t)
+        res.append((pp, o, t))
+        lot[idx] = (0., 0, 0)
+    return res
+
+  res = []
+  for n in meta:
+    model.reset_states()
+    for _ in range(0, n):
+      X, expectations   = generator.next()
+      predictions       = model.predict(X, batch_size=n_batch)
+      res += _lot(zip(predictions, expectations), loss_fn)
+
+  pp    = np.mean(list(r[0] for r in res))
+  t, o  = sum(r[1] for r in res), sum(r[2] for r in res)
+  oovr  = 0 if t + o == 0 else o / float(t + o)
+  return pp, oovr
