@@ -81,11 +81,11 @@ def c2w2c_from_c2w2w_weights(c2w2w_weights_file):
   try_load_weights(c2w2w, c2w2w_weights_file)
   try_load_weights(c2w2c, params.init_weight_file)
 
-  prev_w = weight_list(c2w2c)
-  assert prev_w == weight_list(c2w2c)
+  #prev_w = weight_list(c2w2c)
+  #assert prev_w == weight_list(c2w2c)
   for i in range(0, len(c2w2w.layers) - 2):
     c2w2c.layers[i].set_weights(c2w2w.layers[i].get_weights())
-  assert prev_w != weight_list(c2w2c)
+  #assert prev_w != weight_list(c2w2c)
   return c2w2c, (c2w, lm, w2c)
 
 

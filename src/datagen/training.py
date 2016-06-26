@@ -114,7 +114,7 @@ def prepare_c2w2w_training_data(params, dataset, V_C, V_W, shuffle=True):
 def prepare_w2c_training_data(c2wnp1, params, dataset, V_C):
   def _to_cached_w2c_samples(cache):
     def to_samples(samples):
-      cache_key = ':'.join([s[0] for s in samples])
+      cache_key = ':'.join([('' if s is None else s[0]) for s in samples])
       if cache_key in cache:
         return cache[cache_key]
       # samples not found from cache, must generate embedding first

@@ -39,20 +39,20 @@ class WordProbGen(threading.Thread):
 def word_probability_from_chars(word, p_chars, maxlen, V_C):
   def char_p(ch, i):
     return p_chars[i, V_C.get_index(ch)] / np.sum(p_chars[i])
-  tok = w2tok(word, maxlen, pad=None)
+  tok = w2tok(word, maxlen, pad=EOW)
   return np.exp(np.sum(np.log([char_p(ch, i) for i, ch in enumerate(tok)])))
 
 
 def calc_p_words_for_vocabulary(w2c, w_np1e, V_C, V_W, params):
   wpgen      = WordProbGen(w2c, w_np1e, V_W, V_C, params)
-  p_words, n = [], 0
+  p_words, n = [None] * V_W.size, 0
 
   wpgen.start()
   while n < V_W.size:
     n_batch, batch = wpgen.q.get()
     for word, p_chars in batch:
       p_w = word_probability_from_chars(word, p_chars, params.maxlen, V_C)
-      p_words.append((word, p_w))
+      p_words[V_W.get_index(word)] = (word, p_w)
     n += n_batch
 
   return p_words
