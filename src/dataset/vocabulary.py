@@ -23,4 +23,4 @@ class Vocabulary:
 
 def make_char_vocabulary(datasets):
   tokens = [tok for s in datasets for tok in s.vocabulary.tokens]
-  return Vocabulary(list(''.join(tokens)) + [SOW, EOW])
+  return Vocabulary(list(''.join(tokens)) + [EOW])

@@ -70,15 +70,14 @@ def to_c2w2c_samples(params, V_C):
     X_nmask = np.zeros(shape=(n_batch, 1), dtype=np.bool)
     X_np1c  = np.zeros(shape=(n_batch, maxlen, V_C.size), dtype=np.bool)
     y       = np.zeros(shape=(n_batch, maxlen, V_C.size), dtype=np.bool)
-    W       = np.zeros(shape=(n_batch, maxlen), dtype=np.float32)
+    W       = np.ones(shape=(n_batch, maxlen), dtype=np.float32)
     for i, sample in enumerate(samples):
       if sample is not None:
         w_n, w_np1 = sample
         X_nmask[i, 0] = 1
         fill_word_one_hots(X_nc[i], w_n, V_C, maxlen)
-        fill_word_one_hots(X_np1c[i], SOW + w_np1, V_C, maxlen, pad=None)
-        fill_word_one_hots(y[i], w_np1, V_C, maxlen, pad=None)
-        fill_weights(W[i], w_np1, maxlen)
+        fill_word_one_hots(X_np1c[i], SOW + w_np1, V_C, maxlen, pad=EOW)
+        fill_word_one_hots(y[i], w_np1, V_C, maxlen, pad=EOW)
     return {'w_nc': X_nc, 'w_nmask': X_nmask, 'w_np1c': X_np1c}, y, W
   return to_samples
 

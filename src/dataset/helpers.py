@@ -1,12 +1,14 @@
 import numpy as np
 
 from ..common import w2tok
+from ..constants import SOW
 
 
 def fill_word_one_hots(X, word, V_C, maxlen, pad=None):
   tok = w2tok(word, maxlen)
   for i, ch in enumerate(tok):
-    X[i, V_C.get_index(ch)] = 1
+    if ch != SOW:
+      X[i, V_C.get_index(ch)] = 1
   if pad is not None:
     for i in range(len(tok), maxlen):
       X[i, V_C.get_index(pad)] = 1
