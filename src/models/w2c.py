@@ -1,15 +1,16 @@
-from keras.layers import LSTM, Input, RepeatVector, Activation, merge
+from keras.layers import Input, Activation, RepeatVector
 from keras.models import Model
 
-from ..layers import ProjectionOverTime
+from ..layers import ProjectionOverTime, DecoderGRU, Maxout
 
 
 class W2C(Model):
-  def __init__(self, maxlen, d_W, d_D, V_C, trainable=True, apply_softmax=False):
+  def __init__(self, maxlen, d_W, d_C, d_D, V_C, trainable=True, apply_softmax=False):
     """
       n_batch  :: batch size for model application
       maxlen   :: maximum sampled word length
-      d_L      :: language model state dimension (input embedding vector size)
+      d_W      :: word features
+      d_C      :: character features
       d_D      :: internal decoder state dimension
       V_C      :: character vocabulary
     """
@@ -17,14 +18,10 @@ class W2C(Model):
     w_np1E  = Input(shape=(d_W, ), name='w_np1e', dtype='floatX')
     w_np1c  = Input(shape=(maxlen, V_C.size), name='w_np1c', dtype='int8')
 
-    w_E     = RepeatVector(maxlen)(w_np1E)
-    w_EC    = merge(inputs=[w_E, w_np1c], mode='concat')
-    c_E     = LSTM(d_D,
-                   trainable=trainable,
-                   return_sequences=True,
-                   consume_less='gpu')(w_EC)
-
-    c_I     = ProjectionOverTime(V_C.size, trainable=trainable)(c_E)
+    w_np1ce = ProjectionOverTime(d_C, trainable=trainable)(w_np1c)
+    h       = DecoderGRU(d_D, trainable=trainable, return_sequences=True)([w_np1ce, w_np1E])
+    s       = Maxout(d_D, trainable=trainable)([h, w_np1ce, RepeatVector(maxlen)(w_np1E)])
+    c_I     = ProjectionOverTime(V_C.size, trainable=trainable)(s)
 
     # for W2C training only
     if apply_softmax:
