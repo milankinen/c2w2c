@@ -199,7 +199,7 @@ model, run_tests, generate_text, persist_weights, prep_data = prepare_env(params
 def run_model_tests(prev_pp):
   if params.gen_n_samples is not None:
     print 'Generating text...'
-    n_seed = 3
+    n_seed = 30
     seed   = test_dataset.sentences
     if len(seed) > n_seed:
       idx = np.random.randint(0, len(seed) - n_seed)

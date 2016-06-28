@@ -50,7 +50,7 @@ def sample_c2w2c_text(c2wnp1, wc2, seed, how_many, V_W, V_C, params):
   # give seed as context before we start the actual text generation
   c2wnp1.reset_states()
   w_np1e = _sample_step(c2wnp1, seed, V_C, params)
-  stdw(seed + ['|>'])
+  #stdw(seed + ['|>'])
   # then predict words word by word and sample the received word embedding
   # to actual word by using some strategy (e.g. char-by-char)
   for _ in range(0, how_many):
@@ -64,7 +64,7 @@ def sample_c2w2c_text(c2wnp1, wc2, seed, how_many, V_W, V_C, params):
 def sample_c2w2w_text(c2w2w, seed, how_many, V_W, V_C, params):
   c2w2w.reset_states()
   P = _sample_step(c2w2w, seed, V_C, params)
-  stdw(seed + ['|>'])
+  #stdw(seed + ['|>'])
   for _ in range(0, how_many):
     next_word = V_W.get_token(np.argmax(P))
     stdw([next_word])
