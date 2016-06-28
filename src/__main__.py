@@ -40,7 +40,7 @@ print '  - Distinct characters: %d' % V_C.size
 def compile_model(model, returns_chars=True):
   lr   = params.learning_rate
   clip = 5.
-  adam = Adam(lr=lr, clipvalue=clip)
+  adam = Adam(lr=lr, clipnorm=clip)
   model.compile(optimizer=adam,
                 loss='categorical_crossentropy',
                 sample_weight_mode=('temporal' if returns_chars else None),

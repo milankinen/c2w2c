@@ -84,7 +84,7 @@ def from_cli_args():
   parser.add_argument('--c2w2w-weights', metavar='filename', help='C2W2W weights when fine-tuning W2C model')
   parser.set_defaults(context_size=10,
                       batch_size=50,
-                      learning_rate=0.001,
+                      learning_rate=0.0002,
                       num_epoch=1000,
                       max_word_length=25,
                       test_only=False,
