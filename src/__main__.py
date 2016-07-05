@@ -12,7 +12,7 @@ from keras import backend as K
 
 from models import C2W2C, WordLSTM
 from dataset import load_dataset, make_char_vocabulary, initialize_c2w2c_data, initialize_word_lstm_data
-from textgen import generate_c2w2c_text
+from textgen import generate_c2w2c_text, generate_word_lstm_text
 from util import info, Timer
 
 sys.setrecursionlimit(40000)
@@ -143,7 +143,7 @@ def prepare_env(params):
 
     def gen_text(seed, how_many):
       validation_model.set_weights(trainable_model.get_weights())
-      generate_c2w2c_text(validation_model, test_maxlen, seed, how_many)
+      generate_word_lstm_text(validation_model, seed, how_many)
 
     print 'Model parameters:'
     print ' - Total:%10s' % str(param_count(trainable_model))
@@ -197,18 +197,17 @@ def main():
 
   # ======== PREPARE MODELS AND DATA  ========
 
-  print ''
   t_model, v_model, training_data, validation_data, gen_text = prepare_env(params)
 
   def validate_model(ppprev):
     if gen_n_text_samples:
-      print 'Generating %d text samples...' % gen_n_text_samples
+      print '\nGenerating %d text samples...' % gen_n_text_samples
       n_seed = 30
       start = max(0, np.random.randint(0, training_dataset.n_words - n_seed))
       seed = training_dataset.get_words()[start: start + n_seed]
       gen_text(seed=seed, how_many=gen_n_text_samples)
 
-    print 'Validating model...'
+    print '\nValidating model...'
     validation_t.start()
     v_model.set_weights(t_model.get_weights())
     v_model.reset_states()
@@ -230,7 +229,7 @@ def main():
     validate_model(None)
     sys.exit(0)
 
-  print 'Training model...'
+  print '\nTraining model...'
   for epoch in range(1, n_epoch + 1):
     print '=== Epoch %d ===' % epoch
     training_t.start()

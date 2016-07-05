@@ -1,1 +1,2 @@
 from c2w2c_textgen import generate_c2w2c_text
+from word_lstm_textgen import generate_word_lstm_text

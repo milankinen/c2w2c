@@ -33,5 +33,7 @@ def WordLSTM(batch_size, d_W, d_L, V_W):
   y         = Activation('softmax')(y_logit)
   word_lstm = Model(input=x, output=y)
 
+  word_lstm.get_hyperparams = lambda: (batch_size, d_W, d_L, V_W)
+
   return word_lstm
 

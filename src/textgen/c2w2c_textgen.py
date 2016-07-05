@@ -52,4 +52,4 @@ def generate_c2w2c_text(model, maxlen, seed, how_many):
     next_word = _sample_word(model, c, maxlen, V_C)
     _stdwrite(next_word)
     seed = [next_word]
-  print ''
+
