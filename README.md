@@ -15,7 +15,7 @@ In order to run the model, the following pre-requirements must be satisfied.
 # Theano and keras and their deps
 pip install numpy scipy pyyaml
 pip install https://github.com/Theano/archive/rel-0.8.2.zip
-pip install https://github.com/fchollet/keras/archive/1.0.4.zip
+pip install https://github.com/fchollet/keras/archive/1.0.5.zip
 
 # If you want to load/save weights, install
 pip install Cython
