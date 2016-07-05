@@ -7,4 +7,5 @@ export DEVICE=cpu
       --save-weights c2w2c.h5 \
       --load-weights c2w2c.h5 \
       --mode c2w2c \
-      -w 21
+      -w 21 \
+      --gen-text 20

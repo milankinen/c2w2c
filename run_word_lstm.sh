@@ -6,4 +6,5 @@ export DEVICE=cpu
       --test data/validation.txt \
       --save-weights word.h5 \
       --load-weights word.h5 \
-      --mode word
+      --mode word \
+      --gen-text 20
