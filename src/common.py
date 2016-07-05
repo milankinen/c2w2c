@@ -1,10 +1,6 @@
 from constants import EOW, EOS, SOS
 
 
-def is_oov(word, maxlen):
-  return len(word) >= maxlen - 2
-
-
 def w2tok(word, maxlen, pad=None):
   if len(word) >= maxlen - 1:
     word = word[0: maxlen - 1]
