@@ -33,24 +33,29 @@ class DecoderGRU(Recurrent):
     self.C = self.inner_init((self.embedding_dim, 3 * self.output_dim),
                              name='{}_C'.format(self.name))
 
+    self.V = self.init((self.embedding_dim, self.output_dim),
+                       name='{}_V'.format(self.name))
+
     self.b = K.variable(np.hstack((np.zeros(self.output_dim),
                                    np.zeros(self.output_dim),
                                    np.zeros(self.output_dim))),
                         name='{}_b'.format(self.name))
 
-    self.trainable_weights = [self.W, self.U, self.C, self.b]
+    self.trainable_weights = [self.W, self.U, self.C, self.V, self.b]
 
   def reset_states(self):
     pass
 
   def get_initial_states(self, x):
-    return super(DecoderGRU, self).get_initial_states(x[0])
+    c  = x[1]
+    h0 = self.activation(K.dot(c, self.V))
+    return [h0]
 
   def preprocess_input(self, x):
     return x[0]
 
   def call(self, x, mask=None):
-    return super(DecoderGRU, self).call(x, mask[0])
+    return super(DecoderGRU, self).call(x)
 
   def compute_mask(self, input, mask):
     return mask[0]

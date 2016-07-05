@@ -12,13 +12,20 @@ class Projection(Layer):
 
     Basically same as Dense without bias but supports zero masking
   """
-  def __init__(self, output_dim, weights=None, activation='linear', **kwargs):
+  def __init__(self, output_dim, weights=None, activation='linear', return_mask=True, **kwargs):
     self.supports_masking = True
     self.output_dim       = output_dim
     self.init             = initializations.get('glorot_uniform')
     self.activation       = activations.get(activation)
     self.initial_weights  = weights
+    self.return_mask      = return_mask
     super(Projection, self).__init__(**kwargs)
+
+  def compute_mask(self, input, input_mask=None):
+    if self.return_mask:
+      return super(Projection, self).compute_mask(input, input_mask)
+    else:
+      return None
 
   def build(self, input_shape):
     input_dim = input_shape[1]
@@ -42,8 +49,8 @@ class ProjectionOverTime(TimeDistributed):
     Efficient time distributed projection layer that always uses reshaping
     for the time distribution effect (= faster)
   """
-  def __init__(self, output_dim, weights=None, activation='linear', **kwargs):
-    layer = Projection(output_dim, weights, activation)
+  def __init__(self, output_dim, weights=None, activation='linear', return_mask=True, **kwargs):
+    layer = Projection(output_dim, weights, activation, return_mask=return_mask)
     super(ProjectionOverTime, self).__init__(layer, **kwargs)
 
   def call(self, X, mask=None):
