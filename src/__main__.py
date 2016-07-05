@@ -2,16 +2,15 @@ import os.path as path
 import sys
 from time import strftime, localtime
 
+import keras.engine.training as ket
 import numpy as np
-from keras.optimizers import Adam
+from keras import backend as K
 from keras.callbacks import ModelCheckpoint
+from keras.optimizers import Adam
 
 import model_params
-import keras.engine.training as ket
-from keras import backend as K
-
-from models import C2W2C, WordLSTM
 from dataset import load_dataset, make_char_vocabulary, initialize_c2w2c_data, initialize_word_lstm_data
+from models import C2W2C, WordLSTM
 from textgen import generate_c2w2c_text, generate_word_lstm_text
 from util import info, Timer
 

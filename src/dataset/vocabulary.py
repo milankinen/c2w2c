@@ -1,4 +1,4 @@
-from ..constants import SOW, EOW
+from ..constants import EOW
 
 
 class Vocabulary:

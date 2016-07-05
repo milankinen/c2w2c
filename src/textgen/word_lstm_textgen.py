@@ -1,4 +1,5 @@
 import sys
+
 import numpy as np
 
 from ..common import EOS, w2str

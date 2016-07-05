@@ -1,5 +1,6 @@
-import numpy as np
 import random
+
+import numpy as np
 
 from ..common import w2tok
 from ..constants import EOW, UNK

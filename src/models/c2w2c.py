@@ -1,5 +1,4 @@
 import numpy as np
-
 from keras.layers import Input, Dropout, Activation
 from keras.models import Model
 
