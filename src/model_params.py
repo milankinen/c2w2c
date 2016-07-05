@@ -55,7 +55,7 @@ def _DataLimit(v):
 
 
 def from_cli_args():
-  parser = argparse.ArgumentParser(description='C2W + W2C decoder')
+  parser = argparse.ArgumentParser(description='C2W2C language model', usage='./run <args>')
   parser.add_argument('--training', metavar='filename', help='Training dataset filename')
   parser.add_argument('--test', metavar='filename', help='Validation dataset filename')
   parser.add_argument('--data-limit', '-l', metavar='training:validation', type=_DataLimit, help='Limit data size to the given rows (e.g. "10:1")')
