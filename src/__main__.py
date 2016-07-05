@@ -141,6 +141,7 @@ def main():
   save_weight_filename = params.save_weight_file
   do_validation_only   = params.test_only
   gen_n_text_samples   = params.gen_n_samples
+  learning_rate        = params.learning_rate
 
   training_t   = Timer()
   validation_t = Timer()
@@ -242,6 +243,10 @@ def main():
 
     pp = validate_model(prev_pp)
 
+    if prev_pp is not None and pp > prev_pp:
+      learning_rate /= 2.
+      info('Validation perplexity increased. Halving learning rate to %f...' % learning_rate)
+      K.set_value(t_model.optimizer.lr, learning_rate)
 
     prev_acc  = acc
     prev_loss = loss
