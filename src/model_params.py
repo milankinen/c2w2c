@@ -7,8 +7,7 @@ class ModelParams:
   def __init__(self, args):
     self.training_dataset = args.training or 'data/training.txt'
     self.test_dataset     = args.test or 'data/test.txt'
-    self.n_context        = args.context_size
-    self.n_batch          = args.batch_size
+    self.batch_size       = args.batch_size
     self.n_epoch          = args.num_epoch
     self.init_weight_file = args.load_weights
     self.save_weight_file = args.save_weights
@@ -24,20 +23,16 @@ class ModelParams:
     self.test_data_limit  = self.limits[1] if self.limits is not None else None
     self.gen_n_samples    = args.gen_text
     self.test_only        = args.test_only
-    self.mode             = args.mode
-    self.c2w2w_weights    = args.c2w2w_weights
-    self.validation_mode  = args.validation_mode
+    self.mode             = args.mode.upper()
 
   def print_params(self):
-    info('Model parameters:')
-    info(' - Mode:             %s' % self.mode.upper())
-    info(' - Validation mode:  %s' % self.validation_mode)
+    info('Model hyper-parameters:')
+    info(' - Mode:             %s' % self.mode)
     info(' - Training dataset: %s' % self.training_dataset)
     info(' - Test dataset:     %s' % self.test_dataset)
     if self.limits:
       info(' - Data limits:      %d / %d' % (self.train_data_limit, self.test_data_limit))
-    info(' - Context size:     %d' % self.n_context)
-    info(' - Batch size:       %d' % self.n_batch)
+    info(' - Batch size:       %d' % self.batch_size)
     info(' - Number of epoch:  %d' % self.n_epoch)
     info(' - d_C:              %d' % self.d_C)
     info(' - d_W:              %d' % self.d_W)
@@ -64,8 +59,6 @@ def from_cli_args():
   parser.add_argument('--training', metavar='filename', help='Training dataset filename')
   parser.add_argument('--test', metavar='filename', help='Validation dataset filename')
   parser.add_argument('--data-limit', '-l', metavar='training:validation', type=_DataLimit, help='Limit data size to the given rows (e.g. "10:1")')
-  parser.add_argument('--validation-data-limit', metavar='n', type=int, help='Limit validation data size to the given rows')
-  parser.add_argument('--context-size', metavar='n', type=int, help='Sliding window context size in training')
   parser.add_argument('--batch-size', metavar='n', type=int, help='Number of samples is single training batch')
   parser.add_argument('--learning-rate', '-r', metavar='num', type=float)
   parser.add_argument('--num-epoch', '-e', metavar='n', type=int, help='Number of epoch to run')
@@ -79,17 +72,13 @@ def from_cli_args():
   parser.add_argument('--d_D', type=int, metavar='n', help='W2C Decoder state dimension')
   parser.add_argument('--gen-text', type=int, metavar='n', help='Generate N sample sentences after each epoch')
   parser.add_argument('--test-only', '-T', action='store_true', help='Run only PP test and (optional) text generation')
-  parser.add_argument('--mode', metavar='c2w2c|word|w2c_train', help='Select which mode to run')
-  parser.add_argument('--validation-mode', metavar='full|quick', help='Define which validation mode to use')
-  parser.add_argument('--c2w2w-weights', metavar='filename', help='C2W2W weights when fine-tuning W2C model')
-  parser.set_defaults(context_size=10,
-                      batch_size=50,
-                      learning_rate=0.0002,
+  parser.add_argument('--mode', metavar='c2w2c|word', help='Select which mode to run')
+  parser.set_defaults(batch_size=50,
+                      learning_rate=0.001,
                       num_epoch=1000,
                       max_word_length=25,
                       test_only=False,
                       mode='c2w2c',
-                      validation_mode='quick',
                       d_C=50,
                       d_W=50,
                       d_Wi=150,
