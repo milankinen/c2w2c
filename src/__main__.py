@@ -45,16 +45,10 @@ print ''
 def try_load_weights(model, filename):
   if filename:
     if path.isfile(filename):
-      print 'Loading existing weights from "%s"...' % filename
+      print '\nLoading existing weights from "%s"...' % filename
       model.load_weights(filename)
     else:
-      print 'Initial weight file not found: %s' % filename
-
-
-def try_save_weights(model, filename):
-  if filename:
-    model.save_weights(filename, overwrite=True)
-    print 'Weights saved to: %s' % filename
+      print '\nInitial weight file not found: %s' % filename
 
 
 def param_count(m):
