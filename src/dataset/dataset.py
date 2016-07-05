@@ -33,11 +33,11 @@ def _make_sentences(tokenized_lines):
 
 
 class Dataset:
-  def __init__(self, sentences):
+  def __init__(self, sentences, use_unk=False):
     self.sentences  = sentences
     self.n_words    = sum(len(s) for s in self.sentences)
     words  = self.get_words()
-    self.vocabulary = Vocabulary(words)
+    self.vocabulary = Vocabulary(words + ([UNK] if use_unk else []))
 
   def print_stats(self):
     info('Dataset statistics:')
@@ -49,8 +49,8 @@ class Dataset:
     return [w for s in self.sentences for w in s]
 
 
-def load_dataset(filename, max_lines=None):
-  return Dataset(_make_sentences(_load_input(filename, max_lines)))
+def load_dataset(filename, max_lines=None, use_unk=False):
+  return Dataset(_make_sentences(_load_input(filename, max_lines)), use_unk=use_unk)
 
 
 def make_dataset_from_sentence(sent):

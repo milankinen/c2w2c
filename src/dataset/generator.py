@@ -2,7 +2,7 @@ import numpy as np
 import random
 
 from ..common import w2tok
-from ..constants import EOW
+from ..constants import EOW, UNK
 
 
 def _grouped(col, n):
@@ -69,10 +69,6 @@ def initialize_c2w2c_data(dataset, batch_size, maxlen, V_C, shuffle=True):
         np.copyto(y_tm1[i][1:], y_chars[0: -1])
         np.copyto(y[i], y_chars - 1)
         np.copyto(y_w[i], w)
-
-    #for y_ in y:
-    #  print ['' if idx == -1 else V_C.get_token(idx) for idx in y_]
-
     # sparse_categorical_crossentropy requires y to have the same shape as model output
     y = np.expand_dims(y, -1)
     return {'context': ctx, 'y_tm1': y_tm1}, y, y_w
@@ -86,3 +82,30 @@ def initialize_c2w2c_data(dataset, batch_size, maxlen, V_C, shuffle=True):
   return _make, oov_rate
 
 
+def initialize_word_lstm_data(dataset, batch_size, V_W, shuffle=True):
+  def is_oov(w):
+    return not V_W.has(w)
+
+  def to_samples(batch):
+    ctx   = np.zeros(shape=(batch_size, V_W.size), dtype=np.bool)
+    y     = np.zeros(shape=(batch_size,), dtype=np.int32)
+    y_w   = np.zeros(shape=(batch_size,), dtype=np.float32)
+    for i, sample in enumerate(batch):
+      if sample is not None:
+        w_t, w_tp1 = sample
+        w_t     = UNK if is_oov(w_t) else w_t
+        w_tp1   = UNK if is_oov(w_tp1) else w_tp1
+        y[i]    = V_W.get_index(w_tp1)
+        y_w[i]  = 1.
+        ctx[i, V_W.get_index(w_t)] = 1
+    # sparse_categorical_crossentropy requires y to have the same shape as model output
+    y = np.expand_dims(y, -1)
+    return ctx, y, y_w
+
+  def _make():
+    return make_generator(batch_size, dataset, to_samples, shuffle)
+
+  n_oov     = sum((1 if is_oov(w) else 0) for w in dataset.get_words())
+  oov_rate  = 1. * n_oov / dataset.n_words
+
+  return _make, oov_rate

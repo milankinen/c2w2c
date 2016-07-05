@@ -1,31 +1,37 @@
-from keras.layers import Input, Dropout, Activation, Dense, TimeDistributed
+from keras import backend as K
+from keras.layers import Input, Dropout, Activation, Dense, Layer
 from keras.models import Model
 
 from sub_models import LanguageModel
-from layers import ProjectionOverTime
 
 
-def WordLSTM(batch_size, n_ctx, params, V_W):
-  """
-    Returns tuple (word_lstm model, sub-models, inputs)
-  """
-  # params
-  d_W       = params.d_W
-  d_L       = params.d_L
+def WordLSTM(batch_size, d_W, d_L, V_W):
+  class WordMask(Layer):
+    def __init__(self, **kwargs):
+      super(WordMask, self).__init__(**kwargs)
+
+    def call(self, x, mask=None):
+      assert mask is None
+      return K.cast(K.any(x, axis=-1), K.floatx())
+
+    def get_output_shape_for(self, input_shape):
+      return input_shape
 
   # inputs
-  ctx       = Input(batch_shape=(batch_size, n_ctx, V_W.size), name='ctx')
-  ctx_mask  = Input(batch_shape=(batch_size, n_ctx), name='ctx_mask', dtype='int8')
+  x = Input(batch_shape=(batch_size, V_W.size), name='context')
 
   # sub-models
-  lm        = LanguageModel(batch_size, n_ctx, d_W, d_L)
+  input     = Dense(d_W)
+  lm        = LanguageModel(batch_size, d_W, d_L)
+  output    = Dense(V_W.size)
 
   # the actual word_lstm model
-  W_e       = Dropout(.5)(TimeDistributed(Dense(d_W))(ctx))
-  C         = Dropout(.5)(lm([W_e, ctx_mask]))
-  C_i       = ProjectionOverTime(150)(C)
-  Y_t       = Activation('softmax')(TimeDistributed(Dense(V_W.size))(C_i))
-  word_lstm = Model(input=[ctx, ctx_mask], output=Y_t)
+  ctx       = Dropout(.5)(input(x))
+  ctx_mask  = WordMask()(x)
+  c         = Dropout(.5)(lm([ctx, ctx_mask]))
+  y_logit   = output(Dense(150)(c))
+  y         = Activation('softmax')(y_logit)
+  word_lstm = Model(input=x, output=y)
 
   return word_lstm
 

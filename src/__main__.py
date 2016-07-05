@@ -11,8 +11,7 @@ import keras.engine.training as ket
 from keras import backend as K
 
 from models import C2W2C, WordLSTM
-from dataset import load_dataset, make_char_vocabulary
-from dataset import initialize_c2w2c_data
+from dataset import load_dataset, make_char_vocabulary, initialize_c2w2c_data, initialize_word_lstm_data
 from textgen import generate_c2w2c_text
 from util import info, Timer
 
@@ -23,13 +22,15 @@ params = model_params.from_cli_args()
 params.print_params()
 print ''
 
+use_unk = params.mode == 'WORD'
+
 print 'Loading training data...'
-training_dataset = load_dataset(params.training_dataset, params.train_data_limit)
+training_dataset = load_dataset(params.training_dataset, params.train_data_limit, use_unk)
 training_dataset.print_stats()
 print ''
 
 print 'Loading test data...'
-test_dataset = load_dataset(params.test_dataset, params.test_data_limit)
+test_dataset = load_dataset(params.test_dataset, params.test_data_limit, use_unk)
 test_dataset.print_stats()
 print ''
 
@@ -106,8 +107,6 @@ def prepare_env(params):
                 sample_weight_mode='temporal',
                 metrics=['accuracy'])
 
-    try_load_weights(trainable_model, weights_0)
-
     training_data   = initialize_c2w2c_data(training_dataset, batch_size, maxlen, V_C, shuffle=True)
     validation_data = initialize_c2w2c_data(test_dataset, batch_size, test_maxlen, V_C, shuffle=False)
 
@@ -123,7 +122,28 @@ def prepare_env(params):
     print '       %10s' % str(param_count(trainable_model))
 
   elif mode == 'WORD':
-    raise NotImplementedError
+
+    trainable_model = WordLSTM(batch_size=batch_size,
+                               d_W=d_W,
+                               d_L=d_L,
+                               V_W=V_W)
+
+    validation_model = WordLSTM(batch_size=batch_size,
+                                d_W=d_W,
+                                d_L=d_L,
+                                V_W=V_W)
+
+    for m in [trainable_model, validation_model]:
+      m.compile(optimizer=optimizer,
+                loss='sparse_categorical_crossentropy',
+                metrics=['accuracy'])
+
+    training_data   = initialize_word_lstm_data(training_dataset, batch_size, V_W, shuffle=True)
+    validation_data = initialize_word_lstm_data(test_dataset, batch_size, V_W, shuffle=False)
+
+    def gen_text(seed, how_many):
+      validation_model.set_weights(trainable_model.get_weights())
+      generate_c2w2c_text(validation_model, test_maxlen, seed, how_many)
 
     print 'Model parameters:'
     print ' - Total:%10s' % str(param_count(trainable_model))
@@ -132,6 +152,7 @@ def prepare_env(params):
     print 'Invalid mode: %s' % mode
     sys.exit(1)
 
+  try_load_weights(trainable_model, weights_0)
   return trainable_model, validation_model, training_data, validation_data, gen_text
 
 
