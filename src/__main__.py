@@ -4,6 +4,7 @@ from time import strftime, localtime
 
 import numpy as np
 from keras.optimizers import Adam
+from keras.callbacks import ModelCheckpoint
 
 import model_params
 import keras.engine.training as ket
@@ -215,8 +216,14 @@ def main():
     n_t_samples, gen_t = training_data[0]()
 
     t_model.reset_states()
+
+    callbacks = []
+    if save_weight_filename:
+      callbacks += [ModelCheckpoint(save_weight_filename, monitor='loss', mode='min', save_best_only=True)]
+
     h = t_model.fit_generator(generator=gen_t,
                               samples_per_epoch=n_t_samples,
+                              callbacks=callbacks,
                               nb_epoch=1,
                               verbose=1)
     fit_elapsed, fit_tot = training_t.lap()
