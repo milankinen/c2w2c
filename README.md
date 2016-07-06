@@ -1,6 +1,7 @@
 # C2W2C Language Model
 
-The implementation of the language model from my Master's Thesis.
+The implementation of the language model from my Master's Thesis. If you are interested
+in getting the paper, please send me email to m.lankinen@iki.fi.
 
 
 ## Pre-requirements
@@ -77,3 +78,16 @@ optional arguments:
   --test-only, -T       Run only PP test and (optional) text generation
   --mode c2w2c|word     Select which mode to run
 ```
+
+## Example data
+
+Example data files are taken from [Europarl V7](http://www.statmt.org/europarl/) Finnish 
+Corpus and pre-processed with [Apache OpenNLP](https://opennlp.apache.org/) tokenizer and
+[Finnish tokenizing model](https://github.com/TurkuNLP/Finnish-dep-parser).
+
+* `training.txt` : 700 sentences / 15k tokens
+* `validation.txt` : 30 sentences / 600 tokens
+
+## License 
+
+MIT
