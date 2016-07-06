@@ -74,7 +74,7 @@ def from_cli_args():
   parser.add_argument('--test-only', '-T', action='store_true', help='Run only PP test and (optional) text generation')
   parser.add_argument('--mode', metavar='c2w2c|word', help='Select which mode to run')
   parser.set_defaults(batch_size=50,
-                      learning_rate=0.001,
+                      learning_rate=0.002,
                       num_epoch=1000,
                       max_word_length=25,
                       test_only=False,

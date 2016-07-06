@@ -6,7 +6,7 @@ import keras.engine.training as ket
 import numpy as np
 from keras import backend as K
 from keras.callbacks import ModelCheckpoint
-from keras.optimizers import Adam
+from keras.optimizers import Nadam
 
 import model_params
 from dataset import load_dataset, make_char_vocabulary, initialize_c2w2c_data, initialize_word_lstm_data
@@ -15,7 +15,7 @@ from textgen import generate_c2w2c_text, generate_word_lstm_text
 from util import info, Timer
 
 sys.setrecursionlimit(40000)
-
+MIN_LR = 0.0002
 
 params = model_params.from_cli_args()
 params.print_params()
@@ -72,7 +72,7 @@ def prepare_env(params):
 
   learning_rate = params.learning_rate
   clipnorm      = 2.
-  optimizer     = Adam(lr=learning_rate, clipnorm=clipnorm)
+  optimizer     = Nadam(lr=learning_rate, clipnorm=clipnorm)
 
   if mode == 'C2W2C':
     test_maxlen = max(len(w) + 1 for w in test_dataset.get_words())
@@ -260,8 +260,9 @@ def main():
     pp = validate_model(best_pp)
 
     if best_pp is not None and pp > best_pp:
-      if patience <= 0:
+      if patience <= 0 and learning_rate > MIN_LR:
         learning_rate /= 2.
+        learning_rate = max(learning_rate, MIN_LR)
         info('Validation perplexity increased. Halving learning rate to %f...\n' % learning_rate)
         K.set_value(t_model.optimizer.lr, learning_rate)
         patience = 1
