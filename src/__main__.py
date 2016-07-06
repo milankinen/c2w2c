@@ -160,9 +160,12 @@ def main():
   training_t   = Timer()
   validation_t = Timer()
 
-  prev_pp   = None
+  MAX_PATIENCE = 2
+
+  best_pp   = None
   prev_loss = None
   prev_acc  = None
+  patience  = MAX_PATIENCE
 
   if params.mode == 'C2W2C':
     def c2w2c_weighted_objective(fn):
@@ -192,7 +195,7 @@ def main():
 
   t_model, v_model, training_data, validation_data, gen_text = prepare_env(params)
 
-  def validate_model(ppprev):
+  def validate_model(best):
     if gen_n_text_samples:
       print '\nGenerating %d text samples...' % gen_n_text_samples
       n_seed = 30
@@ -214,7 +217,7 @@ def main():
   - OOV rate:          %f
   - Validation took:   %s
   - Total validation:  %s
-    ''' % (loss, pp, delta_str(pp, ppprev), validation_data[1], val_elapsed, val_tot)
+    ''' % (loss, pp, delta_str(pp, best), validation_data[1], val_elapsed, val_tot)
     info(validation_info)
     return pp
 
@@ -254,16 +257,22 @@ def main():
     print ''
     info(epoch_info)
 
-    pp = validate_model(prev_pp)
+    pp = validate_model(best_pp)
 
-    if prev_pp is not None and pp > prev_pp:
-      learning_rate /= 2.
-      info('Validation perplexity increased. Halving learning rate to %f...' % learning_rate)
-      K.set_value(t_model.optimizer.lr, learning_rate)
+    if best_pp is not None and pp > best_pp:
+      if patience <= 0:
+        learning_rate /= 2.
+        info('Validation perplexity increased. Halving learning rate to %f...\n' % learning_rate)
+        K.set_value(t_model.optimizer.lr, learning_rate)
+        patience = 1
+      else:
+        patience -= 1
+    else:
+      best_pp  = pp
+      patience = MAX_PATIENCE
 
     prev_acc  = acc
     prev_loss = loss
-    prev_pp   = pp
 
   print 'Training complete'
 
