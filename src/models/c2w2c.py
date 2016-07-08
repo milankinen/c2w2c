@@ -61,6 +61,8 @@ def C2W2C(batch_size, maxlen, d_C, d_Wi, d_W, d_L, d_D, V_C):
   c2w2c.get_w2c = lambda: w2c
   c2w2c.predict_ctx = predict_ctx
   c2w2c.predict_chars = predict_chars
+  c2w2c.save_states = lambda: lm.save_states()
+  c2w2c.restore_states = lambda: lm.restore_states()
 
   return c2w2c
 

@@ -1,3 +1,5 @@
+import numpy as np
+
 from keras import backend as K
 from keras.layers import LSTM, Lambda, Input, Reshape
 from keras.models import Model
@@ -23,17 +25,38 @@ class LanguageModel(Model):
           return K.expand_dims(x[1], -1)
       return L()([Reshape((1, d_W))(emb), mask])
 
+    self._saved_states = None
+    self._lstms = []
+
     ctx_emb   = Input(batch_shape=(batch_size, d_W), name='ctx_emb')
     ctx_mask  = Input(batch_shape=(batch_size,), name='ctx_mask')
 
     C = masked_ctx(ctx_emb, ctx_mask)
     for i in range(NUM_LSTMs):
-      C = LSTM(d_L,
-               return_sequences=(i < NUM_LSTMs - 1),
-               stateful=False,
-               consume_less='gpu')(C)
+      lstm = LSTM(d_L,
+                  return_sequences=(i < NUM_LSTMs - 1),
+                  stateful=True,
+                  consume_less='gpu')
+      self._lstms.append(lstm)
+      C = lstm(C)
 
     super(LanguageModel, self).__init__(input=[ctx_emb, ctx_mask], output=C, name='LanguageModel')
+
+  def save_states(self):
+    states = []
+    for lstm in self._lstms:
+      states.append([np.copy(K.get_value(s)) for s in lstm.states])
+    self._saved_states = states
+
+  def restore_states(self):
+    assert self._saved_states is not None
+    for states, lstm in zip(self._saved_states, self._lstms):
+      for src, dest in zip(states, lstm.states):
+        K.set_value(dest, src)
+
+  def reset_states(self):
+    self._saved_states = None
+    return super(LanguageModel, self).reset_states()
 
 
 """

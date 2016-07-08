@@ -18,7 +18,7 @@ def _select(a, temperature=.1):
   return np.argmax(np.random.multinomial(1, a, 1))
 
 
-def _sample_word(model, c, maxlen, V_C, K=20):
+def _sample_words(model, c, maxlen, V_C, K=20):
   def predict(samples):
     context = np.array([c] * len(samples))
     prev_chars = np.zeros((len(samples), maxlen), dtype=np.int32)
@@ -32,7 +32,7 @@ def _sample_word(model, c, maxlen, V_C, K=20):
     return probs
 
   eow = V_C.get_index(EOW)
-  best_chars, losses = beamsearch(predict, 0, eow, k=K, maxsample=maxlen)
+  best_chars, losses = beamsearch(predict, eow, k=K, maxsample=maxlen)
   best_words = []
   for word_chars in best_chars:
     word = ""
@@ -42,12 +42,31 @@ def _sample_word(model, c, maxlen, V_C, K=20):
       word += V_C.get_token(ch)
     best_words.append(word)
   probs = 1. / np.exp(np.array(losses))
+  return best_words, probs
+
+
+def _sample_word(model, c, maxlen, V_C, K=20):
+  words, probs = _sample_words(model, c, maxlen, V_C, K)
   idx = _select(probs)
-  return best_words[idx]
+  return words[idx]
 
 
-def _sample_sent(model, maxlen, V_C, K_s=5, K_w=20):
-  pass
+def _sample_sent(model, step, c_initial, maxlen, V_C, K_s=5, K_w=20):
+  def predict(samples):
+    preds, probs = [], []
+    for ctx in samples:
+      model.restore_states()
+      c = c_initial if len(ctx) == 0 else step(ctx)
+      pe, po = _sample_words(model, c, maxlen, V_C, K=K_w)
+      preds.append(pe)
+      probs.append(po)
+    p_all = np.array(probs)
+    return p_all, preds
+
+  sents, losses = beamsearch(predict, EOS, k=K_s, maxsample=3)
+  probs = 1. / np.exp(np.array(losses))
+  idx = _select(probs, .05)
+  return sents[idx]
 
 
 def generate_c2w2c_text(model, maxlen, seed, how_many):
@@ -65,6 +84,9 @@ def generate_c2w2c_text(model, maxlen, seed, how_many):
   model.reset_states()
   for _ in range(how_many):
     c = _step(seed)
-    next_word = _sample_word(model, c, maxlen, V_C)
-    _stdwrite(next_word)
-    seed = [next_word]
+    model.save_states()
+    next_words = _sample_sent(model, _step, c, maxlen, V_C)
+    for w in next_words:
+      _stdwrite(w)
+    seed = next_words
+    model.restore_states()

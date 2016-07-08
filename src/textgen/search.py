@@ -3,7 +3,7 @@
 import numpy as np
 
 
-def beamsearch(predict, empty, end, k=1, maxsample=400):
+def beamsearch(predict, end, k=1, maxsample=400):
   """return k samples (beams) and their NLL scores, each sample is a sequence of labels,
   all samples starts with an `empty` label and end with `eos` or truncated to length of `maxsample`.
   You need to supply `predict` which returns the label probability of each sample.
@@ -20,9 +20,9 @@ def beamsearch(predict, empty, end, k=1, maxsample=400):
   while live_k and dead_k < k:
     # for every possible live sample calc prob for every possible label
     probs = predict(live_samples)
-    vals = probs[1] if isinstance(probs, tuple) else np.indices((probs.shape[1],))[0]
+    vals = probs[1] if isinstance(probs, tuple) else np.indices(probs.shape)[-1]
     probs = probs[0] if isinstance(probs, tuple) else probs
-    
+
     # total score for every sample is sum of -log of char prb
     cand_scores = np.array(live_scores)[:, None] - np.log(probs)
     cand_flat = cand_scores.flatten()
@@ -33,7 +33,7 @@ def beamsearch(predict, empty, end, k=1, maxsample=400):
 
     # append the new words to their appropriate live sample
     voc_size = probs.shape[1]
-    live_samples = [live_samples[r // voc_size] + [vals[r % voc_size]] for r in ranks_flat]
+    live_samples = [live_samples[r // voc_size] + [vals[r // voc_size][r % voc_size]] for r in ranks_flat]
 
     # live samples that should be dead are...
     zombie = [s[-1] == end or len(s) >= maxsample for s in live_samples]
