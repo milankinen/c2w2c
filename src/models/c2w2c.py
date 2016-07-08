@@ -34,17 +34,26 @@ def C2W2C(batch_size, maxlen, d_C, d_Wi, d_W, d_L, d_D, V_C):
     return lm_model.predict_generator(gen, n_samples)
 
   def predict_chars(c_dat, y_tm1_dat):
-    assert len(c_dat.shape) == len(y_tm1_dat.shape) == 1, (c_dat.shape, y_tm1_dat.shape)
-    assert c_dat.shape[0] == d_L, c_dat.shape
-    assert y_tm1_dat.shape[0] == maxlen, y_tm1_dat.shape
+    assert len(c_dat.shape) == len(y_tm1_dat.shape), (c_dat.shape, y_tm1_dat.shape)
+    assert len(c_dat.shape) in [1, 2]
+    assert c_dat.shape[-1] == d_L, c_dat.shape
+    assert y_tm1_dat.shape[-1] == maxlen, y_tm1_dat.shape
+
+    actual_size, n_samples = batch_size, 1
+    if len(c_dat.shape) == 2:
+      n_samples = c_dat.shape[0]
+      actual_size = max(batch_size, n_samples)
 
     # stateful LSTMs require fixed-size batch so let's just pad other
     # samples with zeros
-    C_dat = np.zeros((batch_size, d_L), dtype=np.float32)
-    Y_tm1_dat = np.zeros((batch_size, maxlen), dtype=np.float32)
-    np.copyto(C_dat[0], c_dat)
-    np.copyto(Y_tm1_dat[0], y_tm1_dat)
-    return w2c_model.predict({'c': C_dat, 'y_tm1': Y_tm1_dat}, batch_size=batch_size)[0]
+    C_dat = np.zeros((actual_size, d_L), dtype=np.float32)
+    Y_tm1_dat = np.zeros((actual_size, maxlen), dtype=np.float32)
+    if len(c_dat.shape) == 1:
+      c_dat = np.reshape(c_dat, (1,) + c_dat.shape)
+      y_tm1_dat = np.reshape(y_tm1_dat, (1,) + y_tm1_dat.shape)
+    np.copyto(C_dat[0:n_samples], c_dat)
+    np.copyto(Y_tm1_dat[0:n_samples], y_tm1_dat)
+    return w2c_model.predict({'c': C_dat, 'y_tm1': Y_tm1_dat}, batch_size=batch_size)
 
   c2w2c.get_hyperparams = lambda: (batch_size, d_C, d_Wi, d_W, d_L, d_D, V_C)
   c2w2c.get_c2w = lambda: c2w
