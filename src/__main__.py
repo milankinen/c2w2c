@@ -6,7 +6,7 @@ import keras.engine.training as ket
 import numpy as np
 from keras import backend as K
 from keras.callbacks import ModelCheckpoint
-from keras.optimizers import Nadam
+from keras.optimizers import Adam
 
 import model_params
 from dataset import load_dataset, make_char_vocabulary, initialize_c2w2c_data, initialize_word_lstm_data
@@ -15,7 +15,7 @@ from textgen import generate_c2w2c_text, generate_word_lstm_text
 from util import info, Timer
 
 sys.setrecursionlimit(40000)
-MIN_LR = 0.0002
+MIN_LR = 0.0001
 
 params = model_params.from_cli_args()
 params.print_params()
@@ -72,7 +72,7 @@ def prepare_env(params):
 
   learning_rate = params.learning_rate
   clipnorm      = 2.
-  optimizer     = Nadam(lr=learning_rate, clipnorm=clipnorm)
+  optimizer     = Adam(lr=learning_rate, clipnorm=clipnorm)
 
   if mode == 'C2W2C':
     test_maxlen = max(len(w) + 1 for w in test_dataset.get_words())
