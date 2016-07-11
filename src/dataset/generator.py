@@ -44,6 +44,8 @@ def initialize_c2w2c_data(dataset, batch_size, maxlen, V_C, shuffle=True):
     token   = w2tok(word, maxlen, pad=None)
     chars   = np.zeros(shape=(maxlen,), dtype=np.int32)
     n_chars = 0
+    if len(word) + 1 > maxlen:
+      is_oov = True
     for ch in token:
       if V_C.has(ch):
         chars[n_chars] = V_C.get_index(ch) + 1

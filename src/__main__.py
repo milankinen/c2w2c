@@ -75,7 +75,7 @@ def prepare_env(params):
   optimizer     = Adam(lr=learning_rate, clipnorm=clipnorm)
 
   if mode == 'C2W2C':
-    test_maxlen = max(len(w) + 1 for w in test_dataset.get_words())
+    test_maxlen = maxlen #max(len(w) + 1 for w in test_dataset.get_words())
 
     trainable_model = C2W2C(batch_size=batch_size,
                             maxlen=maxlen,
@@ -198,7 +198,7 @@ def main():
   def validate_model(best):
     if gen_n_text_samples:
       print '\nGenerating %d text samples...' % gen_n_text_samples
-      n_seed = 30
+      n_seed = 100
       start = max(0, np.random.randint(0, training_dataset.n_words - n_seed))
       seed = training_dataset.get_words()[start: start + n_seed]
       gen_text(seed=seed, how_many=gen_n_text_samples)
