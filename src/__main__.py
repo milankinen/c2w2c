@@ -15,7 +15,9 @@ from textgen import generate_c2w2c_text, generate_word_lstm_text
 from util import info, Timer
 
 sys.setrecursionlimit(40000)
-MIN_LR = 0.0001
+MIN_LR        = 0.0001
+MAX_PATIENCE  = 1
+
 
 params = model_params.from_cli_args()
 params.print_params()
@@ -159,8 +161,6 @@ def main():
 
   training_t   = Timer()
   validation_t = Timer()
-
-  MAX_PATIENCE = 2
 
   best_pp   = None
   prev_loss = None
