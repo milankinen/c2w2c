@@ -51,7 +51,7 @@ def _sample_word(model, c, maxlen, V_C, K=20):
   return words[idx]
 
 
-def _sample_sent(model, step, c_initial, maxlen, V_C, K_s=5, K_w=20):
+def _sample_sent(model, step, c_initial, maxlen, V_C, max_samples, K_s=5, K_w=20):
   def predict(samples):
     preds, probs = [], []
     for ctx in samples:
@@ -63,9 +63,9 @@ def _sample_sent(model, step, c_initial, maxlen, V_C, K_s=5, K_w=20):
     p_all = np.array(probs)
     return p_all, preds
 
-  sents, losses = beamsearch(predict, EOS, k=K_s, maxsample=3)
+  sents, losses = beamsearch(predict, EOS, k=K_s, maxsample=max_samples)
   probs = 1. / np.exp(np.array(losses))
-  idx = _select(probs, .05)
+  idx = _select(probs, .15)
   return sents[idx]
 
 
@@ -81,12 +81,17 @@ def generate_c2w2c_text(model, maxlen, seed, how_many):
     return ctx_pred[-1]
 
   print ''
+  for w in seed:
+    _stdwrite(w)
+  print '|>\n'
   model.reset_states()
-  for _ in range(how_many):
+  n = 0
+  while n < how_many:
     c = _step(seed)
     model.save_states()
-    next_words = _sample_sent(model, _step, c, maxlen, V_C)
+    next_words = _sample_sent(model, _step, c, maxlen, V_C, max_samples=(how_many - n))
     for w in next_words:
       _stdwrite(w)
+    n += len(next_words)
     seed = next_words
     model.restore_states()
