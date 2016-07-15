@@ -37,7 +37,7 @@ def make_generator(batch_size, dataset, to_samples, shuffle):
   return n_samples, generator()
 
 
-def initialize_c2w2c_data(dataset, batch_size, maxlen, V_C, shuffle=True):
+def initialize_c2w2c_data(dataset, batch_size, maxlen, V_C, shuffle=True, include_oov=True):
   cache = {}
   for word in dataset.vocabulary.tokens:
     is_oov  = False
@@ -64,13 +64,15 @@ def initialize_c2w2c_data(dataset, batch_size, maxlen, V_C, shuffle=True):
     y_w   = np.zeros(shape=(batch_size, maxlen), dtype=np.float32)
     for i, sample in enumerate(batch):
       if sample is not None:
-        w_t, w_tp1        = sample
-        x_chars, _, n, _  = cache[w_t]
-        y_chars, w, _, _  = cache[w_tp1]
+        w_t, w_tp1         = sample
+        x_chars, _, n, _   = cache[w_t]
+        y_chars, w, _, oov = cache[w_tp1]
         for k in range(n):
           ctx[i, k] = x_chars[k]
         np.copyto(y_tm1[i][1:], y_chars[0: -1])
         np.copyto(y[i], y_chars - 1)
+        if oov and not include_oov:
+          continue
         np.copyto(y_w[i], w)
     # sparse_categorical_crossentropy requires y to have the same shape as model output
     y = np.expand_dims(y, -1)
@@ -85,7 +87,7 @@ def initialize_c2w2c_data(dataset, batch_size, maxlen, V_C, shuffle=True):
   return _make, oov_rate
 
 
-def initialize_word_lstm_data(dataset, batch_size, V_W, shuffle=True):
+def initialize_word_lstm_data(dataset, batch_size, V_W, shuffle=True, include_oov=True):
   def is_oov(w):
     return not V_W.has(w)
 
@@ -99,8 +101,11 @@ def initialize_word_lstm_data(dataset, batch_size, V_W, shuffle=True):
         w_t     = UNK if is_oov(w_t) else w_t
         w_tp1   = UNK if is_oov(w_tp1) else w_tp1
         y[i]    = V_W.get_index(w_tp1)
-        y_w[i]  = 1.
         ctx[i, V_W.get_index(w_t)] = 1
+        if w_tp1 == UNK and not include_oov:
+          continue
+        y_w[i]  = 1.
+
     # sparse_categorical_crossentropy requires y to have the same shape as model output
     y = np.expand_dims(y, -1)
     return ctx, y, y_w
