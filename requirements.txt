@@ -1,0 +1,5 @@
+numpy>=0.0.1
+scipy>=0.0.1
+pyyaml>=0.0.1
+Cython>=0.0.1
+h5py>=0.0.1

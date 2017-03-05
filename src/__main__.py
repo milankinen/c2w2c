@@ -1,5 +1,5 @@
 import os.path as path
-import sys
+import sys, os
 from time import strftime, localtime
 
 import keras.engine.training as ket
@@ -154,7 +154,7 @@ def prepare_env(params):
 def main():
 
   n_epoch              = params.n_epoch
-  save_weight_filename = params.save_weight_file
+  save_weight_filename = params.save_weight_file or (os.getenv('VH_OUTPUTS_DIR') + '/weights.h5' if os.getenv('VH_OUTPUTS_DIR') else None)
   do_validation_only   = params.test_only
   gen_n_text_samples   = params.gen_n_samples
   learning_rate        = params.learning_rate
