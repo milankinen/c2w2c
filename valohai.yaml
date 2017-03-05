@@ -11,12 +11,12 @@
       - name: training_dataset
         pass-as: --training {v}
         description: Training dataset filename
-        type: str
+        type: string
         default: data/training.txt
       - name: validation_dataset
         pass-as: --test {v}
         description: Validation dataset filename
-        type: str
+        type: string
         default: data/validation.txt
       - name: num_epoch
         pass-as: --num-epoch {v}
