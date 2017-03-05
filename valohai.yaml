@@ -22,12 +22,12 @@
         pass-as: --num-epoch {v}
         description: Number of epoch
         type: integer
-        default: 200
+        default: 300
       - name: learning_rate
         pass-as: --learning-rate {v}
         description: Initial learning rate
         type: float
-        default: 0.001
+        default: 0.002
       - name: max_word_length
         pass-as: -w {v}
         description: Maximum word length (longer words will be truncated)
@@ -35,33 +35,33 @@
         default: 21
       - name: batch_size
         pass-as: --batch-size {v}
-        type: int
+        type: integer
         description: Mini-batch size
         default: 50
       - name: d_C
         pass-as: --d_C {v}
         description: Character features vector size
-        type: int
+        type: integer
         default: 50
       - name: d_W
         pass-as: --d_W {v}
         description: Word features vector size
-        type: int
+        type: integer
         default: 50
       - name: d_Wi
         pass-as: --d_Wi {v}
         description: Intermediate word LSTM state dimension
-        type: int
+        type: integer
         default: 150
       - name: d_L
         pass-as: --d_L {v}
         description: Language model state dimension
-        type: int
+        type: integer
         default: 500
       - name: d_D
         pass-as: --d_D {v}
         description: W2C Decoder state dimension
-        type: int
+        type: integer
         default: 500
 
 - step:
