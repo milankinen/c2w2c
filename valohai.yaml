@@ -2,7 +2,7 @@
 
 - step:
     name: Train model
-    image: gw000/keras:1.2.2-py2-th-gpu
+    image: gw000/keras:1.0.4-py2-th-gpu
     command: ./run --mode c2w2c {parameters}
     #inputs:
     #  - name: training-set-images
@@ -66,7 +66,7 @@
 
 - step:
     name: Worker environment check
-    image: gw000/keras:1.2.2-py2-th-gpu
+    image: gw000/keras:1.0.4-py2-th-gpu
     command:
       - pwd
       - ls -la
