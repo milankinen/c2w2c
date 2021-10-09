@@ -4,7 +4,7 @@ The implementation of the language model from my Master's Thesis. If you are int
 in getting the paper, please send me email to m.lankinen@iki.fi.
 
 
-## Pre-requirements
+## Pre-requirements RAVAL VIVEK
 
 In order to run the model, the following pre-requirements must be satisfied.
 
